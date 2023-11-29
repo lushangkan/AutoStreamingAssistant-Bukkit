@@ -1,0 +1,53 @@
+plugins {
+    id 'java'
+    id "org.jetbrains.kotlin.jvm" version "1.9.21"
+}
+
+group = 'cn.cutemc'
+version = '0.1.0-SNAPSHOT'
+
+repositories {
+    mavenLocal()
+    maven {
+        name = "spigotmc-repo"
+        url = "https://hub.spigotmc.org/nexus/content/repositories/snapshots/"
+    }
+    maven {
+        name = "codemc-nms"
+        url = "https://repo.codemc.io/repository/nms/"
+    }
+}
+
+dependencies {
+    compileOnly 'org.spigotmc:spigot:1.20.2-R0.1-20231119.061830-7'
+    implementation 'org.yaml:snakeyaml:2.2'
+}
+
+def targetJavaVersion = 17
+java {
+    def javaVersion = JavaVersion.toVersion(targetJavaVersion)
+    sourceCompatibility = javaVersion
+    targetCompatibility = javaVersion
+    if (JavaVersion.current() < javaVersion) {
+        toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+    }
+}
+
+kotlin {
+    jvmToolchain(targetJavaVersion)
+}
+
+tasks.withType(JavaCompile).configureEach {
+    if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
+        options.release = targetJavaVersion
+    }
+}
+
+processResources {
+    def props = [version: version]
+    inputs.properties props
+    filteringCharset 'UTF-8'
+    filesMatching('plugin.yml') {
+        expand props
+    }
+}

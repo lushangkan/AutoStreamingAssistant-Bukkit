@@ -1,0 +1,14 @@
+# 摄像机用户名
+cameraNames: []
+# 是否轮流切换玩家
+autoSwitchPlayer: true
+# 轮流切换玩家的间隔时间（分钟）
+switchPlayerInterval: 10
+# 无玩家在线时是否固定摄像机位置
+fixedCameraPosition:
+  - world: world
+    x: 0
+    y: 0
+    z: 0
+    yaw: 0
+    pitch: 0
