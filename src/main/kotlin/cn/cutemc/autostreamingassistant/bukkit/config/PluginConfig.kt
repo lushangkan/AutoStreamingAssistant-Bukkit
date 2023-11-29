@@ -1,6 +1,6 @@
 package cn.cutemc.autostreamingassistant.bukkit.config
 
-data class PluginConfig(val cameraNames: Array<String>, val autoSwitchPlayer: Boolean, val switchPlayerInterval: Int, val fixedCameraPosition: Array<CameraPosition>) {
+data class PluginConfig(val language: String, val cameraNames: Array<String>, val autoSwitchPlayer: Boolean, val switchPlayerInterval: Int, val fixedCameraPosition: Array<CameraPosition>) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false

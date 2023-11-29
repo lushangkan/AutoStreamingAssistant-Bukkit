@@ -1,3 +1,5 @@
+# 语言
+language: en
 # 摄像机用户名
 cameraNames: []
 # 是否轮流切换玩家
