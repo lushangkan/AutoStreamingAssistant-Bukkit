@@ -1,0 +1,23 @@
+{
+  "loading.main": "加载 AutoStreamingAssistant-Server 中...",
+  "loading.config": "加载配置中",
+  "loading.reg.command": "注册命令中",
+  "loading.reg.event": "注册事件中",
+  "loading.done": "AutoStreamingAssistant 已加载!",
+  "disabling.done": "AutoStreamingAssistant 已卸载!",
+  "command.worng": "找不到该命令! 运行/asas help查看帮助",
+  "command.help.title": "AutoStreamingAssistant-Server 帮助",
+  "command.help.version": "版本: ",
+  "command.help.author": "作者: ",
+  "command.help.source": "Github: ",
+  "command.help.command.title": "命令: ",
+  "command.help.command.help": "查看插件帮助",
+  "command.help.command.reload": "重载配置文件",
+  "command.help.command.version": "查看插件版本",
+  "command.help.command.camera.list": "查看所有摄像头",
+  "command.help.command.camera.status": "查看摄像头状态",
+  "command.help.command.camera.bind": "绑定摄像头到指定玩家",
+  "command.help.command.camera.unbind": "解绑摄像头",
+  "command.help.command.args.player": "玩家名",
+  "command.help.command.args.camera": "摄像头名"
+}

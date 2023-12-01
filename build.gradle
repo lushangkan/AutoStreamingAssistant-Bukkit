@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id "org.jetbrains.kotlin.jvm" version "1.9.21"
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
 
 group = 'cn.cutemc'
@@ -19,8 +20,12 @@ repositories {
 }
 
 dependencies {
-    compileOnly 'org.spigotmc:spigot:1.20.2-R0.1-20231119.061830-7'
-    implementation 'org.yaml:snakeyaml:2.2'
+    compileOnly 'org.spigotmc:spigot-api:1.20.2-R0.1-SNAPSHOT'
+    implementation 'commons-io:commons-io:2.15.0'
+
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.16.0'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.16.0'
+    implementation 'com.fasterxml.jackson.module:jackson-module-kotlin:2.16.0'
 }
 
 def targetJavaVersion = 17
@@ -31,6 +36,10 @@ java {
     if (JavaVersion.current() < javaVersion) {
         toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
     }
+}
+
+shadowJar {
+
 }
 
 kotlin {

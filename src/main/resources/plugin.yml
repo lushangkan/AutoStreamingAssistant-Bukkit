@@ -5,3 +5,37 @@ api-version: '1.20'
 authors: [lushangkan]
 description: A Automated Live Streaming Assistant Bukkit Plugin.
 website: https://cutemc.cn
+commands:
+  autostreamingassistantserver:
+    description: AutoStreamingAssistant Server Command
+    usage: "Usage: /<command>"
+    permission: asas.command.main
+    aliases:
+      - asas
+permissions:
+    asas.command.main:
+        description: AutoStreamingAssistant Server Command Main Permission
+        default: op
+    asas.command.main.reload:
+        description: AutoStreamingAssistant Server Command Reload Permission
+        default: op
+    asas.command.main.version:
+        description: AutoStreamingAssistant Server Command Version Permission
+        default: op
+    asas.command.main.help:
+        description: AutoStreamingAssistant Server Command Help Permission
+        default: op
+    asas.command.main.status:
+        description: AutoStreamingAssistant Server Command Status Permission
+        default: op
+    asas.command.main.camera.list:
+        description: AutoStreamingAssistant Server Command Camera List Permission
+        default: op
+    asas.command.main.camera.bind:
+        description: AutoStreamingAssistant Server Command Bind Permission
+        default: op
+    asas.command.main.camera.unbind:
+        description: AutoStreamingAssistant Server Command Unbind Permission
+        default: op
+
+

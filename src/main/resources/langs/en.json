@@ -1,0 +1,23 @@
+{
+  "loading.main": "Loading AutoStreamingAssistant-Server...",
+  "loading.config": "Loading configuration",
+  "loading.reg.command": "Registering commands",
+  "loading.reg.event": "Registering events",
+  "loading.done": "AutoStreamingAssistant loaded!",
+  "disabling.done": "AutoStreamingAssistant unloaded!",
+  "command.worng": "Command not found! Run /asas help to see help",
+  "command.help.title": "AutoStreamingAssistant-Server Help",
+  "command.help.version": "Version: ",
+  "command.help.author": "Author: ",
+  "command.help.source": "Github: ",
+  "command.help.command.title": "Command: ",
+  "command.help.command.help": "See plugin help",
+  "command.help.command.reload": "Reload configuration file",
+  "command.help.command.version": "See plugin version",
+  "command.help.command.camera.list": "See all cameras",
+  "command.help.command.camera.status": "See camera status",
+  "command.help.command.camera.bind": "Bind camera to specified player",
+  "command.help.command.camera.unbind": "Unbind camera",
+  "command.help.command.args.player": "Player name",
+  "command.help.command.args.camera": "Camera name"
+}

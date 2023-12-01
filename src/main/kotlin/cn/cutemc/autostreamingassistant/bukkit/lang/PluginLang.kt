@@ -23,13 +23,15 @@ class PluginLang {
     }
 
     fun getTranslation(key: String): String {
-        val lang = AutoStreamingAssistant.INSTANCE.config.getString("language") ?: "en_us"
+        val lang = AutoStreamingAssistant.INSTANCE.config.mainConfig.language
         return getTranslation(lang, key)
     }
 
     private fun saveLangFiles() {
         val plugin: JavaPlugin = AutoStreamingAssistant.INSTANCE
-        val jarFile: Any? = plugin::class.java.getMethod("getFile").invoke(plugin)
+        val getFileMethod = JavaPlugin::class.java.getDeclaredMethod("getFile")
+        getFileMethod.isAccessible = true
+        val jarFile: Any? = getFileMethod.invoke(plugin)
 
         if (jarFile !is File) throw RuntimeException("Cannot get jar file!")
 
