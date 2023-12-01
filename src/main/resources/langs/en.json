@@ -1,8 +1,10 @@
 {
   "loading.main": "Loading AutoStreamingAssistant-Server...",
-  "loading.config": "Loading configuration",
-  "loading.reg.command": "Registering commands",
-  "loading.reg.event": "Registering events",
+  "loading.config": "Loading configuration...",
+  "loading.reg.command": "Registering commands...",
+  "loading.reg.listeners": "Registering listeners...",
+  "loading.reg.packet": "Registering network packet channel...",
+  "loading.create.cameras": "Creating camera...",
   "loading.done": "AutoStreamingAssistant loaded!",
   "disabling.done": "AutoStreamingAssistant unloaded!",
   "command.worng": "Command not found! Run /asas help to see help",

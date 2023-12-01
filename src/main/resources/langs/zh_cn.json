@@ -1,8 +1,10 @@
 {
   "loading.main": "加载 AutoStreamingAssistant-Server 中...",
-  "loading.config": "加载配置中",
-  "loading.reg.command": "注册命令中",
-  "loading.reg.event": "注册事件中",
+  "loading.config": "加载配置中...",
+  "loading.reg.command": "注册命令中...",
+  "loading.reg.listeners": "注册监听器中...",
+  "loading.reg.packet": "注册网络包通道中...",
+  "loading.create.cameras": "创建摄像头中...",
   "loading.done": "AutoStreamingAssistant 已加载!",
   "disabling.done": "AutoStreamingAssistant 已卸载!",
   "command.worng": "找不到该命令! 运行/asas help查看帮助",
