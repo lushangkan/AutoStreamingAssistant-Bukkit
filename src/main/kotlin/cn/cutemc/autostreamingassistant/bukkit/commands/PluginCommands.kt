@@ -116,9 +116,9 @@ object PluginCommands : CommandExecutor {
         sender.sendMessage("${ChatColor.GOLD} ● /autostreamingassistantserver version${ChatColor.GRAY} - ${ChatColor.DARK_AQUA}${lang.getTranslation("command.help.command.version")}")
         sender.sendMessage("${ChatColor.GOLD} ● /autostreamingassistantserver camera list${ChatColor.GRAY} - ${ChatColor.DARK_AQUA}${lang.getTranslation("command.help.command.camera.list")}")
         sender.sendMessage("${ChatColor.GOLD} ● /autostreamingassistantserver camera status${ChatColor.GRAY} - ${ChatColor.DARK_AQUA}${lang.getTranslation("command.help.command.camera.status")}")
-        sender.sendMessage("${ChatColor.GOLD} ● /autostreamingassistantserver camera status <player>${ChatColor.GRAY} - ${ChatColor.DARK_AQUA}${lang.getTranslation("command.help.command.camera.status.player")}")
-        sender.sendMessage("${ChatColor.GOLD} ● /autostreamingassistantserver camera bind <player> <camera>${ChatColor.GRAY} - ${ChatColor.DARK_AQUA}${lang.getTranslation("command.help.command.camera.bind")}")
-        sender.sendMessage("${ChatColor.GOLD} ● /autostreamingassistantserver camera unbind <player>${ChatColor.GRAY} - ${ChatColor.DARK_AQUA}${lang.getTranslation("command.help.command.camera.unbind")}")
+        sender.sendMessage("${ChatColor.GOLD} ● /autostreamingassistantserver camera status <${lang.getTranslation("command.help.command.args.camera")}>${ChatColor.GRAY} - ${ChatColor.DARK_AQUA}${lang.getTranslation("command.help.command.camera.status.camera")}")
+        sender.sendMessage("${ChatColor.GOLD} ● /autostreamingassistantserver camera bind <${lang.getTranslation("command.help.command.args.player")}> <${lang.getTranslation("command.help.command.args.camera")}>${ChatColor.GRAY} - ${ChatColor.DARK_AQUA}${lang.getTranslation("command.help.command.camera.bind")}")
+        sender.sendMessage("${ChatColor.GOLD} ● /autostreamingassistantserver camera unbind <${lang.getTranslation("command.help.command.args.player")}>${ChatColor.GRAY} - ${ChatColor.DARK_AQUA}${lang.getTranslation("command.help.command.camera.unbind")}")
         sender.sendMessage("${ChatColor.GOLD}${ChatColor.BOLD}================================================")
         sender.sendMessage("\n")
 
@@ -135,7 +135,7 @@ object PluginCommands : CommandExecutor {
 
     }
 
-    private fun cameraStatusCommand(sender: CommandSender, playerName: String): Boolean {
+    private fun cameraStatusCommand(sender: CommandSender, cameraName: String): Boolean {
         return true
 
     }

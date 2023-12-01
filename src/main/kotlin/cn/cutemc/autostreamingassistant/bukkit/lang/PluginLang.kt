@@ -47,9 +47,7 @@ class PluginLang {
 
         langFiles.forEach {
             val langFile = File(langsFolder, it.name.substringAfterLast("/"))
-            if (!langFile.exists()) {
-                FileUtils.copyInputStreamToFile(jarZipFile.getInputStream(it), langFile)
-            }
+            FileUtils.copyInputStreamToFile(jarZipFile.getInputStream(it), langFile)
         }
     }
 
