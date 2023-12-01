@@ -20,5 +20,6 @@
   "command.help.command.camera.bind": "绑定摄像头到指定玩家",
   "command.help.command.camera.unbind": "解绑摄像头",
   "command.help.command.args.player": "玩家名",
-  "command.help.command.args.camera": "摄像头名"
+  "command.help.command.args.camera": "摄像头名",
+  "command.version": "AutoStreamingAssistant-Server 版本: "
 }

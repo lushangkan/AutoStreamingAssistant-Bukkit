@@ -126,8 +126,9 @@ object PluginCommands : CommandExecutor {
     }
 
     private fun versionCommand(sender: CommandSender): Boolean {
-        return true
+        sender.sendMessage("${ChatColor.GOLD}${lang.getTranslation("command.version")}${ChatColor.DARK_AQUA}${AutoStreamingAssistant.INSTANCE.description.version}")
 
+        return true
     }
 
     private fun cameraListCommand(sender: CommandSender): Boolean {

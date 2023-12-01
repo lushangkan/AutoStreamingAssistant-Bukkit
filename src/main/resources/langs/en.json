@@ -20,5 +20,6 @@
   "command.help.command.camera.bind": "Bind camera to specified player",
   "command.help.command.camera.unbind": "Unbind camera",
   "command.help.command.args.player": "Player name",
-  "command.help.command.args.camera": "Camera name"
+  "command.help.command.args.camera": "Camera name",
+  "command.version": "AutoStreamingAssistant-Server Version: "
 }
