@@ -7,11 +7,13 @@ import org.bukkit.event.player.PlayerJoinEvent
 
 object PlayerJoinListener : Listener {
 
-    val plugin by lazy { AutoStreamingAssistant.INSTANCE }
+    private val plugin by lazy { AutoStreamingAssistant.INSTANCE }
+    private val logger by lazy { plugin.logger }
 
     @EventHandler
     fun onPlayerJoin(event: PlayerJoinEvent) {
-        val playerName = event.player.name;
+        val playerName = event.player.name
+        logger.info("Player $playerName joined the server")
 
         plugin.cameras.forEach {
             if (it.name == playerName) {

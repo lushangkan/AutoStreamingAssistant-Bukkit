@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id "org.jetbrains.kotlin.jvm" version "1.9.21"
     id 'com.github.johnrengelman.shadow' version '8.1.1'
+//    id "io.freefair.aspectj.post-compile-weaving" version "8.4"
 }
 
 group = 'cn.cutemc'
@@ -9,6 +10,7 @@ version = '0.1.0-SNAPSHOT'
 
 repositories {
     mavenLocal()
+    maven { url = "https://lss233.littleservice.cn/repositories/minecraft" }
     maven {
         name = "spigotmc-repo"
         url = "https://hub.spigotmc.org/nexus/content/repositories/snapshots/"
@@ -17,15 +19,22 @@ repositories {
         name = "codemc-nms"
         url = "https://repo.codemc.io/repository/nms/"
     }
+    maven { url = "https://libraries.minecraft.net" }
+    maven { url "https://repo.dmulloy2.net/repository/public/" }
 }
 
 dependencies {
-    compileOnly 'org.spigotmc:spigot-api:1.20.2-R0.1-SNAPSHOT'
+    compileOnly 'org.bukkit:craftbukkit:1.20.2-R0.1-20231202.232229-9'
     implementation 'commons-io:commons-io:2.15.0'
 
     implementation 'com.fasterxml.jackson.core:jackson-core:2.16.0'
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.16.0'
     implementation 'com.fasterxml.jackson.module:jackson-module-kotlin:2.16.0'
+
+//    implementation 'org.aspectj:aspectjrt:1.9.20.1'
+//    implementation 'org.aspectj:aspectjweaver:1.9.20.1'
+//
+//    compileOnly 'com.comphenix.protocol:ProtocolLib:5.1.1-SNAPSHOT'
 }
 
 def targetJavaVersion = 17

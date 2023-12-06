@@ -1,11 +1,12 @@
-package cn.cutemc.autostreamingassistant.bukkit.listeners.network;
+package cn.cutemc.autostreamingassistant.bukkit.listeners.network.messagings
 
 import org.bukkit.entity.Player
 import org.bukkit.plugin.messaging.PluginMessageListener
 
-object ManualBindCameraPacketListener : PluginMessageListener {
+object BindCameraResponsePacketListener: PluginMessageListener {
 
     override fun onPluginMessageReceived(channel: String, player: Player, message: ByteArray) {
 
     }
+
 }

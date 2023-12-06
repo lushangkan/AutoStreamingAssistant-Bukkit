@@ -5,6 +5,8 @@ api-version: '1.20'
 authors: [lushangkan]
 description: A Automated Live Streaming Assistant Bukkit Plugin.
 website: https://cutemc.cn
+#depend: [ProtocolLib]
+
 commands:
   autostreamingassistantserver:
     description: AutoStreamingAssistant Server Command

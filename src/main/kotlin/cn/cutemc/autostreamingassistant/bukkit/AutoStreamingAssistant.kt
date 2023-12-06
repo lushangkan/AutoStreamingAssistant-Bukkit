@@ -5,7 +5,7 @@ import cn.cutemc.autostreamingassistant.bukkit.commands.PluginCommands
 import cn.cutemc.autostreamingassistant.bukkit.config.PluginConfig
 import cn.cutemc.autostreamingassistant.bukkit.lang.PluginLang
 import cn.cutemc.autostreamingassistant.bukkit.listeners.bukkit.PlayerJoinListener
-import cn.cutemc.autostreamingassistant.bukkit.listeners.network.*
+import cn.cutemc.autostreamingassistant.bukkit.listeners.network.messagings.*
 import cn.cutemc.autostreamingassistant.bukkit.logger.PluginLogger
 import cn.cutemc.autostreamingassistant.bukkit.network.PacketID
 import org.bukkit.Bukkit
@@ -33,6 +33,7 @@ class AutoStreamingAssistant: JavaPlugin() {
         saveDefaultConfig()
         reloadConfig()
     }
+
     override fun onEnable() {
         logger.info("${ChatColor.GOLD}${lang.getTranslation("loading.main")}")
 
