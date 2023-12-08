@@ -12,9 +12,9 @@ object BindCameraResponsePacketListener: PluginMessageListener {
 
     override fun onPluginMessageReceived(channel: String, player: Player, message: ByteArray) {
         val jackson = jacksonObjectMapper()
-        val status: BindCameraResponse = jackson.readValue(message, BindCameraResponse::class.java)
+        val packet: BindCameraResponse = jackson.readValue(message, BindCameraResponse::class.java)
 
-        listeners[player.uniqueId]?.invoke(status)
+        listeners[player.uniqueId]?.invoke(packet)
         listeners.remove(player.uniqueId)
     }
 

@@ -1,6 +1,7 @@
 package cn.cutemc.autostreamingassistant.bukkit.network
 
 enum class UnbindResult {
+    CLIENT_NOT_RESPONDING,
     NOT_BOUND_CAMERA,
     SUCCESS;
 
@@ -15,6 +16,7 @@ enum class UnbindResult {
 
 enum class BindResult {
     CLIENT_NOT_RESPONDING,
+    NO_OTHER_PLAYERS,
     NOT_FOUND_PLAYER,
     NOT_AT_NEAR_BY,
     WORLD_IS_NULL,

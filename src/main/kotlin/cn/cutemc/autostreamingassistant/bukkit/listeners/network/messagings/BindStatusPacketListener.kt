@@ -12,9 +12,9 @@ object BindStatusPacketListener : PluginMessageListener {
 
     override fun onPluginMessageReceived(channel: String, player: Player, message: ByteArray) {
         val jackson = jacksonObjectMapper()
-        val status: BindStatusPacket = jackson.readValue(message, BindStatusPacket::class.java)
+        val packet: BindStatusPacket = jackson.readValue(message, BindStatusPacket::class.java)
 
-        listeners[player.uniqueId]?.invoke(status)
+        listeners[player.uniqueId]?.invoke(packet)
         listeners.remove(player.uniqueId)
     }
 

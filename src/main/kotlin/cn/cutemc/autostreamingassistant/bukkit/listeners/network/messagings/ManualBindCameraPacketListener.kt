@@ -1,5 +1,6 @@
 package cn.cutemc.autostreamingassistant.bukkit.listeners.network.messagings
 
+import cn.cutemc.autostreamingassistant.bukkit.AutoStreamingAssistant
 import cn.cutemc.autostreamingassistant.bukkit.network.ManualBindCameraPacket
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.bukkit.entity.Player
@@ -12,9 +13,13 @@ object ManualBindCameraPacketListener : PluginMessageListener {
 
     override fun onPluginMessageReceived(channel: String, player: Player, message: ByteArray) {
         val jackson = jacksonObjectMapper()
-        val status: ManualBindCameraPacket = jackson.readValue(message, ManualBindCameraPacket::class.java)
+        val packet: ManualBindCameraPacket = jackson.readValue(message, ManualBindCameraPacket::class.java)
 
-        listeners[player.uniqueId]?.invoke(status)
+        AutoStreamingAssistant.INSTANCE.cameras.filter { it.name == player.name }.getOrNull(0)?.let {
+            it.onClientManualBindCamera(packet.playerUuid)
+        }
+
+        listeners[player.uniqueId]?.invoke(packet)
         listeners.remove(player.uniqueId)
     }
 }
