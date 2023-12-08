@@ -14,6 +14,7 @@ enum class UnbindResult {
 }
 
 enum class BindResult {
+    CLIENT_NOT_RESPONDING,
     NOT_FOUND_PLAYER,
     NOT_AT_NEAR_BY,
     WORLD_IS_NULL,

@@ -11,4 +11,5 @@ data class ManualBindCameraPacket(val playerUuid: UUID)
 data class UnbindCameraResponsePacket(val success: UnbindResult, val result: UnbindResult)
 
 data class BindCameraPacket(val playerUuid: UUID)
+
 data class BindCameraResponse(val success: Boolean, val result: BindResult)
