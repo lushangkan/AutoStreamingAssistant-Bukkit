@@ -24,12 +24,18 @@ repositories {
 }
 
 dependencies {
+    testImplementation 'org.jetbrains.kotlin:kotlin-test'
     compileOnly 'org.bukkit:craftbukkit:1.20.2-R0.1-20231202.232229-9'
+    compileOnly 'org.bukkit:craftbukkit:1.20.2-R0.1-20231202.232229-9:sources'
     implementation 'commons-io:commons-io:2.15.0'
 
     implementation 'com.fasterxml.jackson.core:jackson-core:2.16.0'
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.16.0'
     implementation 'com.fasterxml.jackson.module:jackson-module-kotlin:2.16.0'
+
+    implementation 'com.google.code.gson:gson:2.10.1'
+
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3'
 
 //    implementation 'org.aspectj:aspectjrt:1.9.20.1'
 //    implementation 'org.aspectj:aspectjweaver:1.9.20.1'
@@ -45,6 +51,10 @@ java {
     if (JavaVersion.current() < javaVersion) {
         toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
     }
+}
+
+test {
+    useJUnitPlatform()
 }
 
 shadowJar {
@@ -69,3 +79,4 @@ processResources {
         expand props
     }
 }
+

@@ -16,3 +16,4 @@ object PacketID {
     const val MANUAL_BIND_CAMERA = "autostreamingassistant:manual_bind_camera"
 
 }
+

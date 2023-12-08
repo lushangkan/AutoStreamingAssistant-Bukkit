@@ -1,15 +1,22 @@
 package cn.cutemc.autostreamingassistant.bukkit.listeners.network.messagings
 
-import cn.cutemc.autostreamingassistant.bukkit.AutoStreamingAssistant
+import cn.cutemc.autostreamingassistant.bukkit.network.ClientStatusPacket
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.bukkit.entity.Player
 import org.bukkit.plugin.messaging.PluginMessageListener
+import java.util.*
 
 object ClientStatusPacketListener : PluginMessageListener {
 
-    val plugin by lazy { AutoStreamingAssistant.INSTANCE }
+    val listeners = mutableMapOf<UUID, (ClientStatusPacket) -> Unit>()
 
     override fun onPluginMessageReceived(channel: String, player: Player, message: ByteArray) {
-        plugin.logger.info("Received client status packet from ${player.name}: ${String(message)}")
+        val jackson = jacksonObjectMapper()
+        val status: ClientStatusPacket = jackson.readValue(message, ClientStatusPacket::class.java)
+
+        listeners[player.uniqueId]?.invoke(status)
+        listeners.remove(player.uniqueId)
     }
 
 }
+
