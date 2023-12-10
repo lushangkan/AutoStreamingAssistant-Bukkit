@@ -1,18 +1,21 @@
 package cn.cutemc.autostreamingassistant.bukkit.camera
 
 import cn.cutemc.autostreamingassistant.bukkit.AutoStreamingAssistant
-import cn.cutemc.autostreamingassistant.bukkit.listeners.network.messagings.BindCameraResponsePacketListener
-import cn.cutemc.autostreamingassistant.bukkit.listeners.network.messagings.BindStatusPacketListener
-import cn.cutemc.autostreamingassistant.bukkit.listeners.network.messagings.ClientStatusPacketListener
-import cn.cutemc.autostreamingassistant.bukkit.listeners.network.messagings.UnbindCameraResponsePacketListener
+import cn.cutemc.autostreamingassistant.bukkit.config.CameraPosition
+import cn.cutemc.autostreamingassistant.bukkit.events.CameraJoinEvent
+import cn.cutemc.autostreamingassistant.bukkit.events.CameraLeaveEvent
+import cn.cutemc.autostreamingassistant.bukkit.events.PlayerJoinEvent
+import cn.cutemc.autostreamingassistant.bukkit.events.PlayerLeaveEvent
 import cn.cutemc.autostreamingassistant.bukkit.network.*
 import cn.cutemc.autostreamingassistant.bukkit.network.BindResult.*
+import cn.cutemc.autostreamingassistant.bukkit.network.messagings.events.*
+import cn.cutemc.autostreamingassistant.bukkit.network.messagings.listeners.*
 import cn.cutemc.autostreamingassistant.bukkit.utils.BukkitUtils
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.google.gson.Gson
 import kotlinx.coroutines.*
-import org.bukkit.craftbukkit.v1_20_R2.entity.CraftPlayer
-import org.bukkit.entity.Player
+import org.bukkit.Location
+import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer
 import java.nio.charset.StandardCharsets
 import java.util.*
 import kotlin.concurrent.schedule
@@ -24,8 +27,12 @@ class Camera(val name: String) {
 
     private val plugin by lazy { AutoStreamingAssistant.INSTANCE }
     private val config by lazy { plugin.config.mainConfig }
-    private var online = false
-    private var player: CraftPlayer? = null
+    var online = false
+        private set
+    var player: CraftPlayer? = null
+        private set
+    var fixedPos: CameraPosition? = null
+        private set
 
     var autoSwitchPlayer = true
         set (value) {
@@ -41,6 +48,15 @@ class Camera(val name: String) {
 
     private var status: ClientStatus? = null
 
+    init {
+        CameraJoinEvent.EVENT.register(this::onCameraJoin)
+        CameraLeaveEvent.EVENT.register(this::onCameraLeave)
+        PlayerJoinEvent.EVENT.register(this::onPlayerJoin)
+        PlayerLeaveEvent.EVENT.register(this::onPlayerLeave)
+
+        ManualBindCameraPacketEvent.EVENT.register(this::onClientManualBindCamera)
+    }
+
     /**
      * 当摄像头加入服务器时调用
      * 这个方法会先发送一个请求客户端状态的消息，然后等待客户端回应
@@ -48,33 +64,41 @@ class Camera(val name: String) {
      *
      * @param player 摄像头所属的玩家
      */
-    suspend fun joinServer(player: Player) {
-        if (player !is CraftPlayer) throw IllegalStateException("Player is not CraftPlayer!")
+    private fun onCameraJoin(event: CameraJoinEvent) {
+        CoroutineScope(Dispatchers.Default).launch {
+            val player = event.player
 
-        val result = withTimeoutOrNull(100000) {
-            suspendCancellableCoroutine { cont ->
-                ClientStatusPacketListener.listeners[player.uniqueId] = { clientStatus ->
-                    this@Camera.status = clientStatus.status
-                    if (cont.isActive) cont.resume(Unit)
+            if (player !is CraftPlayer) throw IllegalStateException("Player is not CraftPlayer!")
+
+            val result = withTimeoutOrNull(100000) {
+                suspendCancellableCoroutine<ClientStatus> { cont ->
+                    val callback = { event: ClientStatusPacketEvent ->
+                        if (event.player.uniqueId == player.uniqueId) {
+                            ClientStatusPacketEvent.EVENT.unregister(this)
+                            if (cont.isActive) cont.resume(event.packet.status)
+                        }
+                    }
+
+                    ClientStatusPacketEvent.EVENT.register(callback)
+
+                    cont.invokeOnCancellation { ClientStatusPacketEvent.EVENT.unregister(callback) }
+
+                    val message = Gson().toJson(mapOf("version" to plugin.description.version))
+
+                    BukkitUtils.sendPluginMessage(plugin, player, PacketID.REQUEST_STATUS, message.toByteArray(StandardCharsets.UTF_8))
                 }
-
-                cont.invokeOnCancellation { ClientStatusPacketListener.listeners.remove(player.uniqueId) }
-
-                val message = Gson().toJson(mapOf("version" to plugin.description.version))
-
-                BukkitUtils.sendPluginMessage(plugin, player, PacketID.REQUEST_STATUS, message.toByteArray(StandardCharsets.UTF_8))
             }
+
+            if (result == null) {
+                plugin.logger.warning("Cannot get client status from $name, it seems that the client does not load the dependent Mod, please check it!")
+                return@launch
+            }
+
+            online = true
+            this@Camera.player = player
+
+            getBoundPlayer() ?: bindRandomPlayer()
         }
-
-        if (result == null) {
-            plugin.logger.warning("Cannot get client status from $name, it seems that the client does not load the dependent Mod, please check it!")
-            return
-        }
-
-        online = true
-        this.player = player
-
-        getBoundPlayer() ?: bindRandomPlayer()
     }
 
     /**
@@ -86,17 +110,20 @@ class Camera(val name: String) {
         if (player == null) throw IllegalStateException("Camera is not online!")
 
         val uuid = withTimeoutOrNull(100000) {
-            val uuid = suspendCancellableCoroutine { cont ->
-                BindStatusPacketListener.listeners[player!!.uniqueId] = { bindStatus ->
-                    if (cont.isActive) cont.resume(bindStatus.playerUuid)
+            return@withTimeoutOrNull suspendCancellableCoroutine<UUID> { cont ->
+                val callback = { event: BindStatusPacketEvent ->
+                    if (event.player.uniqueId == player!!.uniqueId) {
+                        BindStatusPacketEvent.EVENT.unregister(this)
+                        if (cont.isActive) cont.resume(event.packet.playerUuid)
+                    }
                 }
 
-                cont.invokeOnCancellation { BindStatusPacketListener.listeners.remove(player!!.uniqueId) }
+                BindStatusPacketEvent.EVENT.register(callback)
+
+                cont.invokeOnCancellation { BindStatusPacketEvent.EVENT.unregister(callback) }
 
                 BukkitUtils.sendPluginMessage(plugin, player!!, PacketID.REQUEST_BIND_STATUS, ByteArray(0))
             }
-
-            return@withTimeoutOrNull uuid
         }
 
         return if (uuid != null) plugin.server.getPlayer(uuid) as CraftPlayer else null
@@ -182,16 +209,21 @@ class Camera(val name: String) {
 
         player!!.teleport(bindPlayer.location)
 
-        delay(5000) // TODO 将延迟添加到配置文件
+        delay(5000) // TODO 将延迟添加到配置文件 添加数据包以获取客户端加载玩家列表
 
         val result = withTimeoutOrNull(100000) {
 
             return@withTimeoutOrNull suspendCancellableCoroutine { cont ->
-                BindCameraResponsePacketListener.listeners[player!!.uniqueId] = { bindCameraResponse ->
-                    if (cont.isActive) cont.resume(bindCameraResponse.result)
+                val callback = { event: BindCameraResponsePacketEvent ->
+                    if (event.player.uniqueId == player!!.uniqueId) {
+                        BindCameraResponsePacketEvent.EVENT.unregister(this)
+                        if (cont.isActive) cont.resume(event.packet.result)
+                    }
                 }
 
-                cont.invokeOnCancellation { BindCameraResponsePacketListener.listeners.remove(player!!.uniqueId) }
+                BindCameraResponsePacketEvent.EVENT.register(callback)
+
+                cont.invokeOnCancellation { BindCameraResponsePacketEvent.EVENT.unregister(callback) }
 
                 val message = BindCameraPacket(bindPlayer.uniqueId)
                 val jackson = jacksonObjectMapper()
@@ -252,14 +284,23 @@ class Camera(val name: String) {
 
         val result = withTimeoutOrNull(100000) {
             return@withTimeoutOrNull suspendCancellableCoroutine { cont ->
-                UnbindCameraResponsePacketListener.listeners[player!!.uniqueId] = { result ->
-                    if (cont.isActive) cont.resume(result.result)
+                val callback = { event: UnbindCameraResponsePacketEvent ->
+                    if (event.player.uniqueId == player!!.uniqueId) {
+                        UnbindCameraResponsePacketEvent.EVENT.unregister(this)
+                        if (cont.isActive) cont.resume(event.packet.result)
+                    }
                 }
 
-                cont.invokeOnCancellation { UnbindCameraResponsePacketListener.listeners.remove(player!!.uniqueId) }
+                UnbindCameraResponsePacketEvent.EVENT.register(callback)
+
+                cont.invokeOnCancellation { UnbindCameraResponsePacketEvent.EVENT.unregister(callback) }
 
                 BukkitUtils.sendPluginMessage(plugin, player!!, PacketID.UNBIND_CAMERA, ByteArray(0))
             }
+        }
+
+        if (result != UnbindResult.SUCCESS) {
+            plugin.logger.warning("Cannot unbind camera $name, please check the client log")
         }
 
         return result ?: UnbindResult.CLIENT_NOT_RESPONDING
@@ -290,6 +331,105 @@ class Camera(val name: String) {
     }
 
     /**
+     * 显示一个固定的位置
+     *
+     * @param cameraPosition 要显示的位置
+     */
+    suspend fun showFixedPos(cameraPosition: CameraPosition) {
+        plugin.logger.info("Camera $name show fixed pos")
+
+        if (player == null) throw IllegalStateException("Camera is not online!")
+
+        val result = unbindCamera()
+
+        if (result != UnbindResult.SUCCESS) return
+
+        val world = plugin.server.getWorld(cameraPosition.world)
+
+        if (world == null) {
+            plugin.logger.warning("Cannot find world ${cameraPosition.world}, please check config.yml")
+            return
+        }
+
+        val loc = Location(world, cameraPosition.x, cameraPosition.y, cameraPosition.z, cameraPosition.yaw, cameraPosition.pitch)
+
+        player!!.teleport(loc)
+
+        fixedPos = cameraPosition
+
+        boundPlayer = null
+    }
+
+    /**
+     * 显示一个随机位置
+     */
+    suspend fun showRandomPos() {
+        if (player == null) throw IllegalStateException("Camera is not online!")
+
+        val result = unbindCamera()
+
+        if (result != UnbindResult.SUCCESS) return
+
+        val onlineCameras = AutoStreamingAssistant.INSTANCE.cameras.filter { it.isOnline() && it != this }
+
+        val allLocs = config.fixedCameraPosition
+
+        if (allLocs.isEmpty()) {
+            plugin.logger.warning("Cannot find a random position, please check config.yml")
+            return
+        }
+
+        val showingLocs = onlineCameras.mapNotNull { it.fixedPos }
+
+        // 计数，以找出最少的那个位置
+        val countMap = mutableMapOf<CameraPosition, Int>()
+        allLocs.forEach {
+            countMap[it] = 0
+        }
+        showingLocs.forEach {
+            countMap[it] = countMap[it]!! + 1
+        }
+
+        val minLoc = countMap.minByOrNull { it.value }?.key
+
+        showFixedPos(minLoc!!)
+    }
+
+    /**
+     * 当摄像头玩家离开服务器时调用
+     */
+    suspend fun onBoundPlayerLeaveServer() {
+        if (player == null) return
+
+        if (bindRandomPlayer() != SUCCESS) {
+            showRandomPos()
+        }
+    }
+
+    private fun onPlayerLeave(event: PlayerLeaveEvent) {
+        CoroutineScope(Dispatchers.Default).launch {
+            if (event.player == boundPlayer) onBoundPlayerLeaveServer()
+        }
+    }
+
+    /**
+     * 当有新玩家加入服务器时调用
+     */
+    private fun onPlayerJoin(event: PlayerJoinEvent) {
+        CoroutineScope(Dispatchers.Default).launch {
+            if (player == null) return@launch
+
+            if (autoSwitchPlayer && fixedPos != null) {
+                // 如果自动切换玩家开启，并且摄像头显示的是固定位置，那么就绑定到新加入的玩家
+
+                if (bindRandomPlayer() !== SUCCESS) {
+                    showRandomPos()
+                }
+            }
+        }
+    }
+
+    /**
      * 清除所有计时器
      */
     private fun cleanTimer() {
@@ -297,13 +437,17 @@ class Camera(val name: String) {
         timer = Timer()
     }
 
-
-    fun leaveServer() {
+    private fun onCameraLeave(event: CameraLeaveEvent) {
         synchronized(this) {
-            cleanTimer()
+            if (event.player == boundPlayer) {
+                cleanTimer()
 
-            online = false
-            player = null
+                online = false
+                player = null
+                boundPlayer = null
+                status = null
+                fixedPos = null
+            }
         }
     }
 

@@ -99,7 +99,6 @@ object PluginCommands : CommandExecutor {
 
     private fun reloadCommand(sender: CommandSender): Boolean {
         return true
-
     }
 
     private fun helpCommand(sender: CommandSender): Boolean {

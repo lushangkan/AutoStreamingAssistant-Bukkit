@@ -12,4 +12,4 @@ data class UnbindCameraResponsePacket(val success: UnbindResult, val result: Unb
 
 data class BindCameraPacket(val playerUuid: UUID)
 
-data class BindCameraResponse(val success: Boolean, val result: BindResult)
+data class BindCameraResponsePacket(val success: Boolean, val result: BindResult)

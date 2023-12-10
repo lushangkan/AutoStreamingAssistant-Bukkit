@@ -4,10 +4,11 @@ import cn.cutemc.autostreamingassistant.bukkit.camera.Camera
 import cn.cutemc.autostreamingassistant.bukkit.commands.PluginCommands
 import cn.cutemc.autostreamingassistant.bukkit.config.PluginConfig
 import cn.cutemc.autostreamingassistant.bukkit.lang.PluginLang
-import cn.cutemc.autostreamingassistant.bukkit.listeners.bukkit.PlayerJoinListener
-import cn.cutemc.autostreamingassistant.bukkit.listeners.network.messagings.*
+import cn.cutemc.autostreamingassistant.bukkit.listeners.PlayerJoinListener
+import cn.cutemc.autostreamingassistant.bukkit.listeners.PlayerQuitListener
 import cn.cutemc.autostreamingassistant.bukkit.logger.PluginLogger
 import cn.cutemc.autostreamingassistant.bukkit.network.PacketID
+import cn.cutemc.autostreamingassistant.bukkit.network.messagings.listeners.*
 import org.bukkit.Bukkit
 import org.bukkit.ChatColor
 import org.bukkit.plugin.java.JavaPlugin
@@ -41,7 +42,7 @@ class AutoStreamingAssistant: JavaPlugin() {
         Bukkit.getPluginCommand("autostreamingassistantserver")?.setExecutor(PluginCommands)
 
         logger.info("${ChatColor.GOLD}${lang.getTranslation("loading.reg.listeners")}")
-        Bukkit.getPluginManager().registerEvents(PlayerJoinListener, this)
+        registerListeners()
 
         logger.info("${ChatColor.GOLD}${lang.getTranslation("loading.create.cameras")}")
         createCameras()
@@ -66,6 +67,11 @@ class AutoStreamingAssistant: JavaPlugin() {
         config.mainConfig.cameraNames.forEach {
             cameras.add(Camera(it))
         }
+    }
+
+    private fun registerListeners() {
+        Bukkit.getPluginManager().registerEvents(PlayerJoinListener, this)
+        Bukkit.getPluginManager().registerEvents(PlayerQuitListener, this)
     }
 
     private fun registerPacket() {
