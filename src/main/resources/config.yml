@@ -1,16 +1,19 @@
-# 语言
+# Language
 language: en
-# 摄像机用户名
+# Camera usernames
 cameraNames: []
-# 是否轮流切换玩家
+# Whether to switch players in turns
 autoSwitchPlayer: true
-# 轮流切换玩家的间隔时间（分钟）
+# Interval for switching players (minutes)
 switchPlayerInterval: 10
-# 无玩家在线时是否固定摄像机位置
+# Whether to fix the camera position when no players are online
 fixedCameraPosition:
-  - world: world
+  - name: "Default"
+    world: "world"
     x: 0
     y: 0
     z: 0
     yaw: 0
     pitch: 0
+# Timeout for communication with the client (unit: seconds)
+networkTimeout: 10

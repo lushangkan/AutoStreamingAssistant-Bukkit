@@ -34,14 +34,14 @@ class Camera(val name: String) {
     var fixedPos: CameraPosition? = null
         private set
 
-    var autoSwitchPlayer = true
+    var autoSwitch = true
         set (value) {
-            onSetAutoSwitchPlayer(value)
+            onSetAutoSwitch(value)
             field = value
         }
 
-    private var boundPlayer: CraftPlayer? = null
-        set (value) {
+    var boundPlayer: CraftPlayer? = null
+        private set (value) {
             onSetBoundPlayer()
             field = value
         }
@@ -70,7 +70,7 @@ class Camera(val name: String) {
 
             if (player !is CraftPlayer) throw IllegalStateException("Player is not CraftPlayer!")
 
-            val result = withTimeoutOrNull(100000) {
+            val result = withTimeoutOrNull(config.networkTimeout.toLong() * 1000L) {
                 suspendCancellableCoroutine<ClientStatus> { cont ->
                     val callback = { event: ClientStatusPacketEvent ->
                         if (event.player.uniqueId == player.uniqueId) {
@@ -109,7 +109,7 @@ class Camera(val name: String) {
     suspend fun getBoundPlayer(): CraftPlayer? {
         if (player == null) throw IllegalStateException("Camera is not online!")
 
-        val uuid = withTimeoutOrNull(100000) {
+        val uuid = withTimeoutOrNull(config.networkTimeout.toLong() * 1000L) {
             return@withTimeoutOrNull suspendCancellableCoroutine<UUID> { cont ->
                 val callback = { event: BindStatusPacketEvent ->
                     if (event.player.uniqueId == player!!.uniqueId) {
@@ -141,7 +141,7 @@ class Camera(val name: String) {
      */
     private fun addTimer() {
         cleanTimer()
-        if (autoSwitchPlayer) {
+        if (autoSwitch) {
             timer.schedule(config.switchPlayerInterval.toLong() * 60L * 1000L) {
                 synchronized(this@Camera) {
                     CoroutineScope(Dispatchers.IO).launch {
@@ -163,8 +163,8 @@ class Camera(val name: String) {
      *
      * @param value 自动切换玩家的值
      */
-    private fun onSetAutoSwitchPlayer(value: Boolean) {
-        if (value && !autoSwitchPlayer) {
+    private fun onSetAutoSwitch(value: Boolean) {
+        if (value && !autoSwitch) {
             //
             if (boundPlayer == null) {
                 // 随机绑定一个玩家
@@ -177,7 +177,7 @@ class Camera(val name: String) {
                 // 添加计时器
                 addTimer()
             }
-        } else if (!value && autoSwitchPlayer) {
+        } else if (!value && autoSwitch) {
             // 取消计时器
             cleanTimer()
         }
@@ -207,11 +207,13 @@ class Camera(val name: String) {
     suspend fun bindCamera(bindPlayer: CraftPlayer): BindResult {
         if (player == null) throw IllegalStateException("Camera is not online!")
 
+        unbindCamera();
+
         player!!.teleport(bindPlayer.location)
 
         delay(5000) // TODO 将延迟添加到配置文件 添加数据包以获取客户端加载玩家列表
 
-        val result = withTimeoutOrNull(100000) {
+        val result = withTimeoutOrNull(config.networkTimeout.toLong() * 1000L) {
 
             return@withTimeoutOrNull suspendCancellableCoroutine { cont ->
                 val callback = { event: BindCameraResponsePacketEvent ->
@@ -238,18 +240,17 @@ class Camera(val name: String) {
         when(result) {
             CLIENT_NOT_RESPONDING -> {
                 plugin.logger.warning("Cannot bind camera $name to a random player, please check network connection, or add more timeouts in config.yml")
-                if (autoSwitchPlayer) plugin.logger.warning("Will try to rebind the camera at the next interval.")
+                if (autoSwitch) plugin.logger.warning("Will try to rebind the camera at the next interval.")
             }
             NO_OTHER_PLAYERS -> {
-                // TODO 将摄像头放置到一个固定的位置
             }
             NOT_FOUND_PLAYER -> {
                 plugin.logger.warning("Can't find player, maybe the player quit when they were ready to bind, if this warning happens multiple times in a row, please feedback this issue!")
-                if (autoSwitchPlayer) plugin.logger.warning("Will try to rebind the camera at the next interval.")
+                if (autoSwitch) plugin.logger.warning("Will try to rebind the camera at the next interval.")
             }
             NOT_AT_NEAR_BY -> {
                 plugin.logger.warning("The random player is not at near by, it seems that the wait time for the camera to load the entity is too short, please try increasing the wait time")
-                if (autoSwitchPlayer) plugin.logger.warning("Will try to rebind the camera at the next interval.")
+                if (autoSwitch) plugin.logger.warning("Will try to rebind the camera at the next interval.")
             }
             WORLD_IS_NULL -> {
                 plugin.logger.warning("Camera $name error, please check the client log")
@@ -265,7 +266,7 @@ class Camera(val name: String) {
             }
             null -> {
                 plugin.logger.warning("Cannot bind camera $name to a random player, please check network connection, or add more timeouts in config.yml")
-                if (autoSwitchPlayer) plugin.logger.warning("Will try to rebind the camera at the next interval.")
+                if (autoSwitch) plugin.logger.warning("Will try to rebind the camera at the next interval.")
             }
         }
 
@@ -282,7 +283,7 @@ class Camera(val name: String) {
     suspend fun unbindCamera(): UnbindResult {
         if (player == null) throw IllegalStateException("Camera is not online!")
 
-        val result = withTimeoutOrNull(100000) {
+        val result = withTimeoutOrNull(config.networkTimeout.toLong() * 1000L) {
             return@withTimeoutOrNull suspendCancellableCoroutine { cont ->
                 val callback = { event: UnbindCameraResponsePacketEvent ->
                     if (event.player.uniqueId == player!!.uniqueId) {
@@ -334,21 +335,22 @@ class Camera(val name: String) {
      * 显示一个固定的位置
      *
      * @param cameraPosition 要显示的位置
+     * @return 绑定结果, 类型UnbindResult或者BindResult
      */
-    suspend fun showFixedPos(cameraPosition: CameraPosition) {
+    suspend fun bindFixedPos(cameraPosition: CameraPosition): Any {
         plugin.logger.info("Camera $name show fixed pos")
 
         if (player == null) throw IllegalStateException("Camera is not online!")
 
         val result = unbindCamera()
 
-        if (result != UnbindResult.SUCCESS) return
+        if (result != UnbindResult.SUCCESS) return result
 
         val world = plugin.server.getWorld(cameraPosition.world)
 
         if (world == null) {
             plugin.logger.warning("Cannot find world ${cameraPosition.world}, please check config.yml")
-            return
+            return WORLD_IS_NULL
         }
 
         val loc = Location(world, cameraPosition.x, cameraPosition.y, cameraPosition.z, cameraPosition.yaw, cameraPosition.pitch)
@@ -358,12 +360,14 @@ class Camera(val name: String) {
         fixedPos = cameraPosition
 
         boundPlayer = null
+
+        return SUCCESS
     }
 
     /**
      * 显示一个随机位置
      */
-    suspend fun showRandomPos() {
+    suspend fun bindRandomPos() {
         if (player == null) throw IllegalStateException("Camera is not online!")
 
         val result = unbindCamera()
@@ -392,7 +396,7 @@ class Camera(val name: String) {
 
         val minLoc = countMap.minByOrNull { it.value }?.key
 
-        showFixedPos(minLoc!!)
+        bindFixedPos(minLoc!!)
     }
 
     /**
@@ -402,7 +406,7 @@ class Camera(val name: String) {
         if (player == null) return
 
         if (bindRandomPlayer() != SUCCESS) {
-            showRandomPos()
+            bindRandomPos()
         }
     }
 
@@ -419,11 +423,11 @@ class Camera(val name: String) {
         CoroutineScope(Dispatchers.Default).launch {
             if (player == null) return@launch
 
-            if (autoSwitchPlayer && fixedPos != null) {
+            if (autoSwitch && fixedPos != null) {
                 // 如果自动切换玩家开启，并且摄像头显示的是固定位置，那么就绑定到新加入的玩家
 
                 if (bindRandomPlayer() !== SUCCESS) {
-                    showRandomPos()
+                    bindRandomPos()
                 }
             }
         }

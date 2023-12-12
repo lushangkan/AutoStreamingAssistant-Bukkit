@@ -16,15 +16,26 @@ class PluginLang {
         reload()
     }
 
-    fun getTranslation(lang: String, key: String): String {
+    fun getTranslationWithLang(lang: String, key: String): String {
         val langFile = langFiles[lang] ?: return key
         val langJson = Files.readString(langFile.toPath())
         return (Gson().fromJson(langJson, Map::class.java)[key] ?: key).toString()
     }
 
+    fun getTranslationWithLang(lang: String, key: String, vararg args: String): String {
+        val langFile = langFiles[lang] ?: return key
+        val langJson = Files.readString(langFile.toPath())
+        return (Gson().fromJson(langJson, Map::class.java)[key] ?: key).toString().format(*args)
+    }
+
     fun getTranslation(key: String): String {
         val lang = AutoStreamingAssistant.INSTANCE.config.mainConfig.language
-        return getTranslation(lang, key)
+        return getTranslationWithLang(lang, key)
+    }
+
+    fun getTranslation(key: String, vararg args: String): String {
+        val lang = AutoStreamingAssistant.INSTANCE.config.mainConfig.language
+        return getTranslationWithLang(lang, key, *args)
     }
 
     private fun saveLangFiles() {
