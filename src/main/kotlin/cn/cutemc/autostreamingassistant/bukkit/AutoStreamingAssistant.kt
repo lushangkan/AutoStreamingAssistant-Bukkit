@@ -2,6 +2,7 @@ package cn.cutemc.autostreamingassistant.bukkit
 
 import cn.cutemc.autostreamingassistant.bukkit.camera.Camera
 import cn.cutemc.autostreamingassistant.bukkit.commands.PluginCommands
+import cn.cutemc.autostreamingassistant.bukkit.commands.PluginTabCompleter
 import cn.cutemc.autostreamingassistant.bukkit.config.PluginConfig
 import cn.cutemc.autostreamingassistant.bukkit.lang.PluginLang
 import cn.cutemc.autostreamingassistant.bukkit.listeners.PlayerJoinListener
@@ -39,7 +40,7 @@ class AutoStreamingAssistant: JavaPlugin() {
         logger.info("${ChatColor.GOLD}${lang.getTranslation("loading.main")}")
 
         logger.info("${ChatColor.GOLD}${lang.getTranslation("loading.reg.command")}")
-        Bukkit.getPluginCommand("autostreamingassistantserver")?.setExecutor(PluginCommands)
+        registerCommands()
 
         logger.info("${ChatColor.GOLD}${lang.getTranslation("loading.reg.listeners")}")
         registerListeners()
@@ -67,6 +68,11 @@ class AutoStreamingAssistant: JavaPlugin() {
         config.mainConfig.cameraNames.forEach {
             cameras.add(Camera(it))
         }
+    }
+
+    private fun registerCommands() {
+        getCommand("autostreamingassistantserver")?.setExecutor(PluginCommands)
+        getCommand("autostreamingassistantserver")?.tabCompleter = PluginTabCompleter
     }
 
     private fun registerListeners() {
