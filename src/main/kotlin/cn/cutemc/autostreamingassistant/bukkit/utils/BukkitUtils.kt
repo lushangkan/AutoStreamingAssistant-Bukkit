@@ -1,6 +1,6 @@
 package cn.cutemc.autostreamingassistant.bukkit.utils
 
-import org.bukkit.craftbukkit.v1_20_R2.entity.CraftPlayer
+import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer
 import org.bukkit.plugin.java.JavaPlugin
 
 object BukkitUtils {
@@ -15,7 +15,7 @@ object BukkitUtils {
      * @param channel 信道ID
      * @param message 消息
      *
-     * @see org.bukkit.craftbukkit.v1_20_R2.entity.CraftPlayer.sendPluginMessage
+     * @see org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer.sendPluginMessage
      */
     fun sendPluginMessage(plugin: JavaPlugin, player: CraftPlayer, channel: String, message: ByteArray) {
         val channelsField = CraftPlayer::class.java.getDeclaredField("channels")

@@ -20,7 +20,7 @@ class AutoStreamingAssistant: JavaPlugin() {
         lateinit var INSTANCE: AutoStreamingAssistant
     }
 
-    private val logger by lazy { PluginLogger(super.getLogger()) }
+    val logger by lazy { PluginLogger(super.getLogger()) }
 
     val config: PluginConfig = PluginConfig()
 
