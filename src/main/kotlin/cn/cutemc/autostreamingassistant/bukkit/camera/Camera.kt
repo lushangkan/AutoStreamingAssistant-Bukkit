@@ -14,6 +14,7 @@ import cn.cutemc.autostreamingassistant.bukkit.utils.BukkitUtils
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.google.gson.Gson
 import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.withLock
 import org.bukkit.Location
 import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer
 import java.nio.charset.StandardCharsets
@@ -189,13 +190,17 @@ class Camera(val name: String) {
      * @return 绑定结果
      */
     suspend fun bindRandomPlayer(): BindResult {
-        val cameraPlayers = config.cameraNames.mapNotNull { plugin.server.getPlayer(it) }
-        val boundPlayers = plugin.cameras.mapNotNull { it.boundPlayer }
-        val canBoundPlayers = plugin.server.onlinePlayers.filter { it !in boundPlayers && it !in cameraPlayers }
+        plugin.mutexCameras.withLock {
+            plugin.mutexConfig.withLock {
+                val cameraPlayers = config.cameraNames.mapNotNull { plugin.server.getPlayer(it) }
+                val boundPlayers = plugin.cameras.mapNotNull { it.boundPlayer }
+                val canBoundPlayers = plugin.server.onlinePlayers.filter { it !in boundPlayers && it !in cameraPlayers }
 
-        if (canBoundPlayers.isEmpty()) return NO_OTHER_PLAYERS
+                if (canBoundPlayers.isEmpty()) return NO_OTHER_PLAYERS
 
-        return bindCamera(canBoundPlayers.random() as CraftPlayer)
+                return bindCamera(canBoundPlayers.random() as CraftPlayer)
+            }
+        }
     }
 
     /**
@@ -368,35 +373,37 @@ class Camera(val name: String) {
      * 显示一个随机位置
      */
     suspend fun bindRandomPos() {
-        if (player == null) throw IllegalStateException("Camera is not online!")
+        plugin.mutexCameras.withLock {
+            if (player == null) throw IllegalStateException("Camera is not online!")
 
-        val result = unbindCamera()
+            val result = unbindCamera()
 
-        if (result != UnbindResult.SUCCESS) return
+            if (result != UnbindResult.SUCCESS) return
 
-        val onlineCameras = AutoStreamingAssistant.INSTANCE.cameras.filter { it.isOnline() && it != this }
+            val onlineCameras = AutoStreamingAssistant.INSTANCE.cameras.filter { it.isOnline() && it != this }
 
-        val allLocs = config.fixedCameraPosition
+            val allLocs = config.fixedCameraPosition.clone()
 
-        if (allLocs.isEmpty()) {
-            plugin.logger.warning("Cannot find a random position, please check config.yml")
-            return
+            if (allLocs.isEmpty()) {
+                plugin.logger.warning("Cannot find a random position, please check config.yml")
+                return
+            }
+
+            val showingLocs = onlineCameras.mapNotNull { it.fixedPos }
+
+            // 计数，以找出最少的那个位置
+            val countMap = mutableMapOf<CameraPosition, Int>()
+            allLocs.forEach {
+                countMap[it] = 0
+            }
+            showingLocs.forEach {
+                countMap[it] = countMap[it]!! + 1
+            }
+
+            val minLoc = countMap.minByOrNull { it.value }?.key
+
+            bindFixedPos(minLoc!!)
         }
-
-        val showingLocs = onlineCameras.mapNotNull { it.fixedPos }
-
-        // 计数，以找出最少的那个位置
-        val countMap = mutableMapOf<CameraPosition, Int>()
-        allLocs.forEach {
-            countMap[it] = 0
-        }
-        showingLocs.forEach {
-            countMap[it] = countMap[it]!! + 1
-        }
-
-        val minLoc = countMap.minByOrNull { it.value }?.key
-
-        bindFixedPos(minLoc!!)
     }
 
     /**

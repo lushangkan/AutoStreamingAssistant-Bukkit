@@ -25,4 +25,8 @@ data class MainConfig(val language: String,
         result = 31 * result + fixedCameraPosition.contentHashCode()
         return result
     }
+
+    fun clone(): MainConfig {
+        return MainConfig(language, cameraNames, autoSwitchPlayer, switchPlayerInterval, fixedCameraPosition, networkTimeout)
+    }
 }

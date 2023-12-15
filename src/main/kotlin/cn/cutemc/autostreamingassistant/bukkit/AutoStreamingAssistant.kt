@@ -10,6 +10,11 @@ import cn.cutemc.autostreamingassistant.bukkit.listeners.PlayerQuitListener
 import cn.cutemc.autostreamingassistant.bukkit.logger.PluginLogger
 import cn.cutemc.autostreamingassistant.bukkit.network.PacketID
 import cn.cutemc.autostreamingassistant.bukkit.network.messagings.listeners.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.bukkit.Bukkit
 import org.bukkit.ChatColor
 import org.bukkit.plugin.java.JavaPlugin
@@ -23,11 +28,13 @@ class AutoStreamingAssistant: JavaPlugin() {
     val logger by lazy { PluginLogger(super.getLogger()) }
 
     val config: PluginConfig = PluginConfig()
+    val mutexConfig: Mutex = Mutex()
 
     lateinit var lang: PluginLang
-        private set
+    private set
 
     val cameras: MutableList<Camera> = mutableListOf()
+    val mutexCameras: Mutex = Mutex()
 
     override fun onLoad() {
         INSTANCE = this
@@ -60,13 +67,44 @@ class AutoStreamingAssistant: JavaPlugin() {
 
     override fun reloadConfig() {
         super.reloadConfig()
-
-        config.loadConfig()
+        CoroutineScope(Dispatchers.Default).launch {
+            mutexConfig.withLock {
+                config.loadConfig()
+                reloadCameras()
+            }
+        }
     }
 
     private fun createCameras() {
-        config.mainConfig.cameraNames.forEach {
-            cameras.add(Camera(it))
+        CoroutineScope(Dispatchers.Default).launch {
+            mutexCameras.withLock {
+                mutexConfig.withLock {
+                    config.mainConfig.cameraNames.forEach {
+                        cameras.add(Camera(it))
+                    }
+                }
+            }
+        }
+    }
+
+    private fun reloadCameras() {
+        CoroutineScope(Dispatchers.Default).launch {
+            mutexCameras.withLock {
+                mutexConfig.withLock {
+                    val temps = mutableListOf<Camera>()
+
+                    config.mainConfig.cameraNames.forEach {
+                        if (cameras.find { camera -> camera.name == it } == null) {
+                            temps.add(Camera(it))
+                            return@forEach
+                        }
+                        temps.add(cameras.find { camera -> camera.name == it }!!)
+                    }
+
+                    cameras.clear()
+                    cameras.addAll(temps)
+                }
+            }
         }
     }
 
