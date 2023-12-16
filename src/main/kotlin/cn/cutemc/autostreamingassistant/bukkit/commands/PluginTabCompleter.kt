@@ -20,13 +20,13 @@ object PluginTabCompleter : TabCompleter {
 
         return when {
             args.size == 1 -> mutableListOf("reload", "help", "version", "camera", "position")
-            args.size == 2 -> handleFirstArgument(args[1])
-            args.size >= 3 -> handleSecondArgument(args)
+            args.size == 2 -> handleSecondArgument(args[0])
+            args.size >= 3 -> handleThirdArgument(args)
             else -> mutableListOf()
         }
     }
 
-    private fun handleFirstArgument(arg: String): MutableList<String> {
+    private fun handleSecondArgument(arg: String): MutableList<String> {
         return when (arg) {
             "camera" -> mutableListOf("bind", "unbind", "list", "status", "autoswitch")
             "position" -> mutableListOf("list")
@@ -34,8 +34,8 @@ object PluginTabCompleter : TabCompleter {
         }
     }
 
-    private fun handleSecondArgument(args: Array<out String>): MutableList<String> {
-        return when (args[1]) {
+    private fun handleThirdArgument(args: Array<out String>): MutableList<String> {
+        return when (args[0]) {
             "camera" -> handleCameraArguments(args)
             "position" -> handlePositionArguments(args)
             else -> mutableListOf()
@@ -43,41 +43,49 @@ object PluginTabCompleter : TabCompleter {
     }
 
     private fun handlePositionArguments(args: Array<out String>): MutableList<String> {
-        return when (args[2]) {
+        return when (args[1]) {
             "list" -> mutableListOf()
             else -> mutableListOf()
         }
     }
 
     private fun handleCameraArguments(args: Array<out String>): MutableList<String> {
-        return when (args[2]) {
+        return when (args[1]) {
             "bind" -> handleBindArguments(args)
             "unbind" -> handleUnbindArguments(args)
             "list" -> mutableListOf()
             "status" -> handleStatusArguments(args)
-            "autoswitch" -> mutableListOf("on", "off")
+            "autoswitch" -> handleAutoSwitchArguments(args)
+            else -> mutableListOf()
+        }
+    }
+
+    private fun handleAutoSwitchArguments(args: Array<out String>): MutableList<String> {
+        return when (args.size) {
+            3 -> getCameraNames()
+            4 -> mutableListOf("on", "off")
             else -> mutableListOf()
         }
     }
 
     private fun handleBindArguments(args: Array<out String>): MutableList<String> {
         return when (args.size) {
-            4 -> getCameraNames()
-            5 -> getPlayerNames().plus(getFixedPositionNames()).toMutableList()
+            3 -> getCameraNames()
+            4 -> getPlayerNames().plus(getFixedPositionNames()).toMutableList()
             else -> mutableListOf()
         }
     }
 
     private fun handleUnbindArguments(args: Array<out String>): MutableList<String> {
         return when (args.size) {
-            4 -> getCameraNames()
+            3 -> getCameraNames()
             else -> mutableListOf()
         }
     }
 
     private fun handleStatusArguments(args: Array<out String>): MutableList<String> {
         return when (args.size) {
-            4 -> getCameraNames()
+            3 -> getCameraNames()
             else -> mutableListOf()
         }
     }

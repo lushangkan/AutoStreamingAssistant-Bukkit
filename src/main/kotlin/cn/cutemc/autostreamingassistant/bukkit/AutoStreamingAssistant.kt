@@ -13,6 +13,7 @@ import cn.cutemc.autostreamingassistant.bukkit.network.messagings.listeners.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.bukkit.Bukkit
@@ -67,7 +68,7 @@ class AutoStreamingAssistant: JavaPlugin() {
 
     override fun reloadConfig() {
         super.reloadConfig()
-        CoroutineScope(Dispatchers.Default).launch {
+        runBlocking {
             mutexConfig.withLock {
                 config.loadConfig()
                 reloadCameras()
