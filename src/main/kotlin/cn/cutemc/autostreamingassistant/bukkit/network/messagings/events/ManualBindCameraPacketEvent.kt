@@ -1,11 +1,12 @@
 package cn.cutemc.autostreamingassistant.bukkit.network.messagings.events
 
+import cn.cutemc.autostreamingassistant.bukkit.events.Event
+import cn.cutemc.autostreamingassistant.bukkit.events.EventBus
 import cn.cutemc.autostreamingassistant.bukkit.network.ManualBindCameraPacket
-import com.google.common.eventbus.EventBus
 import org.bukkit.entity.Player
 
-data class ManualBindCameraPacketEvent(val player: Player, val packet: ManualBindCameraPacket) {
+data class ManualBindCameraPacketEvent(val player: Player, val packet: ManualBindCameraPacket): Event {
     companion object {
-        val EVENT = EventBus("MANUAL_BIND_CAMERA")
+        val EVENT = EventBus<ManualBindCameraPacketEvent>()
     }
 }

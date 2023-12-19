@@ -1,7 +1,6 @@
 package cn.cutemc.autostreamingassistant.bukkit.listeners
 
 import cn.cutemc.autostreamingassistant.bukkit.AutoStreamingAssistant
-import cn.cutemc.autostreamingassistant.bukkit.events.CameraJoinEvent
 import cn.cutemc.autostreamingassistant.bukkit.events.CameraLeaveEvent
 import cn.cutemc.autostreamingassistant.bukkit.events.PlayerLeaveEvent
 import kotlinx.coroutines.CoroutineScope
@@ -25,7 +24,7 @@ object PlayerQuitListener : Listener {
                 val isCamera = plugin.cameras.map { it.name }.contains(playerName)
 
                 if (isCamera) {
-                    CameraLeaveEvent.EVENT.post(CameraJoinEvent(event.player))
+                    CameraLeaveEvent.EVENT.post(CameraLeaveEvent(event.player))
                     return@launch
                 }
 

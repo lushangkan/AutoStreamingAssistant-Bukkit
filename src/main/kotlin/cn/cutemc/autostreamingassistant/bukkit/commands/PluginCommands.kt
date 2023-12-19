@@ -3,6 +3,7 @@ package cn.cutemc.autostreamingassistant.bukkit.commands
 import cn.cutemc.autostreamingassistant.bukkit.AutoStreamingAssistant
 import cn.cutemc.autostreamingassistant.bukkit.network.BindResult
 import cn.cutemc.autostreamingassistant.bukkit.network.UnbindResult
+import cn.cutemc.autostreamingassistant.bukkit.utils.BukkitUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -11,7 +12,6 @@ import org.bukkit.ChatColor
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
-import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer
 
 
 object PluginCommands : CommandExecutor {
@@ -118,7 +118,7 @@ object PluginCommands : CommandExecutor {
     }
 
     private fun wrongCommand(sender: CommandSender): Boolean {
-        sender.sendMessage("${ChatColor.RED}${lang.getTranslation("command.wrong")}")
+        sender.sendMessage(lang.getTranslation("command.wrong"))
         return true
     }
 
@@ -128,40 +128,41 @@ object PluginCommands : CommandExecutor {
     }
 
     private fun reloadCommand(sender: CommandSender): Boolean {
-        sender.sendMessage("${ChatColor.GOLD}${lang.getTranslation("command.reload")}")
+        sender.sendMessage(lang.getTranslation("command.reload"))
 
         plugin.reloadConfig()
+        plugin.reloadCameras()
 
         return true
     }
 
     private fun helpCommand(sender: CommandSender): Boolean {
         sender.sendMessage("\n")
-        sender.sendMessage("${ChatColor.GOLD}${ChatColor.BOLD}===============================")
-        sender.sendMessage("${ChatColor.GOLD}${ChatColor.BOLD} ${lang.getTranslation("command.help.title")}")
-        sender.sendMessage("${ChatColor.GOLD} ${lang.getTranslation("command.help.author")}${ChatColor.DARK_AQUA}${AutoStreamingAssistant.INSTANCE.description.authors.joinToString()}")
-        sender.sendMessage("${ChatColor.GOLD} ${lang.getTranslation("command.help.version")}${ChatColor.DARK_AQUA}${AutoStreamingAssistant.INSTANCE.description.version}")
-        sender.sendMessage("${ChatColor.GOLD} ${lang.getTranslation("command.help.source")}${ChatColor.DARK_AQUA}https://github.com/lushangkan/AutoStreamingAssistant-Server")
+        sender.sendMessage("${ChatColor.GOLD}===============================")
+        sender.sendMessage(" ${lang.getTranslation("command.help.title")}")
+        sender.sendMessage(" ${lang.getTranslation("command.help.author")}${AutoStreamingAssistant.INSTANCE.description.authors.joinToString()}")
+        sender.sendMessage(" ${lang.getTranslation("command.help.version")}${AutoStreamingAssistant.INSTANCE.description.version}")
+        sender.sendMessage(" ${lang.getTranslation("command.help.source")}https://github.com/lushangkan/AutoStreamingAssistant-Server")
         sender.sendMessage("\n")
-        sender.sendMessage("${ChatColor.GOLD} ${lang.getTranslation("command.help.command.title")}")
-        sender.sendMessage("${ChatColor.GOLD} ● /autostreamingassistantserver help${ChatColor.GRAY} - ${ChatColor.DARK_AQUA}${lang.getTranslation("command.help.command.help")}")
-        sender.sendMessage("${ChatColor.GOLD} ● /autostreamingassistantserver reload${ChatColor.GRAY} - ${ChatColor.DARK_AQUA}${lang.getTranslation("command.help.command.reload")}")
-        sender.sendMessage("${ChatColor.GOLD} ● /autostreamingassistantserver version${ChatColor.GRAY} - ${ChatColor.DARK_AQUA}${lang.getTranslation("command.help.command.version")}")
-        sender.sendMessage("${ChatColor.GOLD} ● /autostreamingassistantserver camera list${ChatColor.GRAY} - ${ChatColor.DARK_AQUA}${lang.getTranslation("command.help.command.camera.list")}")
-        sender.sendMessage("${ChatColor.GOLD} ● /autostreamingassistantserver camera status${ChatColor.GRAY} - ${ChatColor.DARK_AQUA}${lang.getTranslation("command.help.command.camera.status")}")
-        sender.sendMessage("${ChatColor.GOLD} ● /autostreamingassistantserver camera status <${lang.getTranslation("command.help.command.args.camera")}>${ChatColor.GRAY} - ${ChatColor.DARK_AQUA}${lang.getTranslation("command.help.command.camera.status.camera")}")
-        sender.sendMessage("${ChatColor.GOLD} ● /autostreamingassistantserver camera bind <${lang.getTranslation("command.help.command.args.camera")}> <${lang.getTranslation("command.help.command.args.player")}/${lang.getTranslation("command.help.command.args.fixedlocation")}>${ChatColor.GRAY} - ${ChatColor.DARK_AQUA}${lang.getTranslation("command.help.command.camera.bind")}")
-        sender.sendMessage("${ChatColor.GOLD} ● /autostreamingassistantserver camera unbind <${lang.getTranslation("command.help.command.args.camera")}>${ChatColor.GRAY} - ${ChatColor.DARK_AQUA}${lang.getTranslation("command.help.command.camera.unbind")}")
-        sender.sendMessage("${ChatColor.GOLD} ● /autostreamingassistantserver camera autoswitch <${lang.getTranslation("command.help.command.args.camera")}> <on/off>${ChatColor.GRAY} - ${ChatColor.DARK_AQUA}${lang.getTranslation("command.help.command.camera.autoswitch")}")
-        sender.sendMessage("${ChatColor.GOLD} ● /autostreamingassistantserver position list${ChatColor.GRAY} - ${ChatColor.DARK_AQUA}${lang.getTranslation("command.help.command.position.list")}")
-        sender.sendMessage("${ChatColor.GOLD}${ChatColor.BOLD}===============================")
+        sender.sendMessage(" ${lang.getTranslation("command.help.command.title")}")
+        sender.sendMessage("${ChatColor.GOLD} ● /autostreamingassistantserver help${ChatColor.GRAY} - ${lang.getTranslation("command.help.command.help")}")
+        sender.sendMessage("${ChatColor.GOLD} ● /autostreamingassistantserver reload${ChatColor.GRAY} - ${lang.getTranslation("command.help.command.reload")}")
+        sender.sendMessage("${ChatColor.GOLD} ● /autostreamingassistantserver version${ChatColor.GRAY} - ${lang.getTranslation("command.help.command.version")}")
+        sender.sendMessage("${ChatColor.GOLD} ● /autostreamingassistantserver camera list${ChatColor.GRAY} - ${lang.getTranslation("command.help.command.camera.list")}")
+        sender.sendMessage("${ChatColor.GOLD} ● /autostreamingassistantserver camera status${ChatColor.GRAY} - ${lang.getTranslation("command.help.command.camera.status")}")
+        sender.sendMessage("${ChatColor.GOLD} ● /autostreamingassistantserver camera status <${lang.getTranslation("command.help.command.args.camera")}>${ChatColor.GRAY} - ${lang.getTranslation("command.help.command.camera.status.camera")}")
+        sender.sendMessage("${ChatColor.GOLD} ● /autostreamingassistantserver camera bind <${lang.getTranslation("command.help.command.args.camera")}> <${lang.getTranslation("command.help.command.args.player")}/${lang.getTranslation("command.help.command.args.fixedlocation")}>${ChatColor.GRAY} - ${lang.getTranslation("command.help.command.camera.bind")}")
+        sender.sendMessage("${ChatColor.GOLD} ● /autostreamingassistantserver camera unbind <${lang.getTranslation("command.help.command.args.camera")}>${ChatColor.GRAY} - ${lang.getTranslation("command.help.command.camera.unbind")}")
+        sender.sendMessage("${ChatColor.GOLD} ● /autostreamingassistantserver camera autoswitch <${lang.getTranslation("command.help.command.args.camera")}> <on/off>${ChatColor.GRAY} - ${lang.getTranslation("command.help.command.camera.autoswitch")}")
+        sender.sendMessage("${ChatColor.GOLD} ● /autostreamingassistantserver position list${ChatColor.GRAY} - ${lang.getTranslation("command.help.command.position.list")}")
+        sender.sendMessage("${ChatColor.GOLD}===============================")
         sender.sendMessage("\n")
 
         return true
     }
 
     private fun versionCommand(sender: CommandSender): Boolean {
-        sender.sendMessage("${ChatColor.GOLD}${lang.getTranslation("command.version")}${ChatColor.DARK_AQUA}${AutoStreamingAssistant.INSTANCE.description.version}")
+        sender.sendMessage("${lang.getTranslation("command.version")}${AutoStreamingAssistant.INSTANCE.description.version}")
 
         return true
     }
@@ -170,37 +171,37 @@ object PluginCommands : CommandExecutor {
         CoroutineScope(Dispatchers.Default).launch {
             plugin.mutexCameras.withLock {
                 if (plugin.cameras.size == 0) {
-                    sender.sendMessage("${ChatColor.RED}${lang.getTranslation("command.camera.list.notfound")}")
+                    sender.sendMessage(lang.getTranslation("command.camera.list.notfound"))
                     return@launch
                 }
 
                 sender.sendMessage("\n")
-                sender.sendMessage("${ChatColor.GOLD}${ChatColor.BOLD}===============================")
-                sender.sendMessage("${ChatColor.GOLD} ${lang.getTranslation("command.camera.list.title")}")
+                sender.sendMessage("${ChatColor.GOLD}===============================")
+                sender.sendMessage(" ${lang.getTranslation("command.camera.list.title")}")
                 plugin.cameras.forEach {
                     sender.sendMessage("\n")
-                    sender.sendMessage("${ChatColor.GOLD} ● ${lang.getTranslation("command.camera.list.camera.name")}${ChatColor.DARK_AQUA}${it.name}")
-                    sender.sendMessage("${ChatColor.GOLD}   ${lang.getTranslation("command.camera.list.camera.status")}")
+                    sender.sendMessage("${ChatColor.GOLD} ● ${lang.getTranslation("command.camera.list.camera.name")}${it.name}")
+                    sender.sendMessage("   ${lang.getTranslation("command.camera.list.camera.status")}")
                     if (it.online) {
-                        sender.sendMessage("${ChatColor.GREEN}   ${lang.getTranslation("command.camera.list.camera.status.online")}")
+                        sender.sendMessage("   ${lang.getTranslation("command.camera.list.camera.status.online")}")
                     } else {
-                        sender.sendMessage("${ChatColor.RED}   ${lang.getTranslation("command.camera.list.camera.status.offline")}")
+                        sender.sendMessage("   ${lang.getTranslation("command.camera.list.camera.status.offline")}")
                     }
                     sender.sendMessage(
-                        "${ChatColor.GOLD}   ${lang.getTranslation("command.camera.list.camera.status.autoswitchplayer")}${if (it.autoSwitch) ChatColor.GREEN else ChatColor.RED}${
+                        "   ${lang.getTranslation("command.camera.list.camera.status.autoswitchplayer")}${
                             if (it.autoSwitch) lang.getTranslation(
                                 "command.camera.list.camera.status.autoswitchplayer.true"
                             ) else lang.getTranslation("command.camera.list.camera.status.autoswitchplayer.false")
                         }"
                     )
                     if (it.boundPlayer != null) {
-                        sender.sendMessage("${ChatColor.GOLD}   ${lang.getTranslation("command.camera.list.camera.status.boundplayer")}${ChatColor.DARK_AQUA}${it.boundPlayer!!.name}")
+                        sender.sendMessage("   ${lang.getTranslation("command.camera.list.camera.status.boundplayer")}${it.boundPlayer!!.name}")
                     } else if (it.fixedPos != null) {
-                        sender.sendMessage("${ChatColor.GOLD}   ${lang.getTranslation("command.camera.list.camera.status.fixedposition")}${ChatColor.DARK_AQUA}${it.fixedPos!!.name}")
+                        sender.sendMessage("   ${lang.getTranslation("command.camera.list.camera.status.fixedposition")}${it.fixedPos!!.name}")
 
                     }
                 }
-                sender.sendMessage("${ChatColor.GOLD}${ChatColor.BOLD}===============================")
+                sender.sendMessage("${ChatColor.GOLD}===============================")
                 sender.sendMessage("\n")
             }
         }
@@ -213,32 +214,30 @@ object PluginCommands : CommandExecutor {
                 val camera = plugin.cameras.find { it.name == cameraName }
 
                 if (camera == null) {
-                    sender.sendMessage("${ChatColor.RED}${lang.getTranslation("command.camera.status.notfound")}")
+                    sender.sendMessage(lang.getTranslation("command.camera.status.notfound"))
                     return@launch
                 }
 
-                sender.sendMessage("\n")
-                sender.sendMessage("${ChatColor.GOLD} ${lang.getTranslation("command.camera.status.title")}")
-                sender.sendMessage("${ChatColor.GOLD} ${lang.getTranslation("command.camera.status.camera.name")}${ChatColor.DARK_AQUA}${camera.name}")
-                sender.sendMessage("${ChatColor.GOLD} ${lang.getTranslation("command.camera.status.camera.status")}")
+                sender.sendMessage(lang.getTranslation("command.camera.status.title"))
+                sender.sendMessage("${lang.getTranslation("command.camera.status.camera.name")}${camera.name}")
+                sender.sendMessage(lang.getTranslation("command.camera.status.camera.status"))
                 if (camera.online) {
-                    sender.sendMessage("${ChatColor.GREEN} ${lang.getTranslation("command.camera.status.camera.status.online")}")
+                    sender.sendMessage(lang.getTranslation("command.camera.status.camera.status.online"))
                 } else {
-                    sender.sendMessage("${ChatColor.RED} ${lang.getTranslation("command.camera.status.camera.status.offline")}")
+                    sender.sendMessage(lang.getTranslation("command.camera.status.camera.status.offline"))
                 }
                 sender.sendMessage(
-                    "${ChatColor.GOLD} ${lang.getTranslation("command.camera.status.camera.status.autoswitchplayer")}${if (camera.autoSwitch) ChatColor.GREEN else ChatColor.RED}${
+                    "${lang.getTranslation("command.camera.status.camera.status.autoswitchplayer")}${
                         if (camera.autoSwitch) lang.getTranslation(
                             "command.camera.status.camera.status.autoswitchplayer.true"
                         ) else lang.getTranslation("command.camera.status.camera.status.autoswitchplayer.false")
                     }"
                 )
                 if (camera.boundPlayer != null) {
-                    sender.sendMessage("${ChatColor.GOLD} ${lang.getTranslation("command.camera.status.camera.status.boundplayer")}${ChatColor.DARK_AQUA}${camera.boundPlayer!!.name}")
+                    sender.sendMessage("${lang.getTranslation("command.camera.status.camera.status.boundplayer")}${camera.boundPlayer!!.name}")
                 } else if (camera.fixedPos != null) {
-                    sender.sendMessage("${ChatColor.GOLD} ${lang.getTranslation("command.camera.status.camera.status.fixedposition")}${ChatColor.DARK_AQUA}${camera.fixedPos!!.name}")
+                    sender.sendMessage("${lang.getTranslation("command.camera.status.camera.status.fixedposition")}${camera.fixedPos!!.name}")
                 }
-                sender.sendMessage("\n")
             }
         }
         return true
@@ -254,49 +253,47 @@ object PluginCommands : CommandExecutor {
 
                     if (camera == null) {
                         // 找不到摄像机
-                        sender.sendMessage("${ChatColor.RED}${lang.getTranslation("command.camera.bind.notfound.camera")}")
+                        sender.sendMessage(lang.getTranslation("command.camera.bind.notfound.camera"))
                         return@launch
                     }
 
                     if (player == null && cameraPosition == null) {
                         // 找不到玩家和位置
-                        sender.sendMessage("${ChatColor.RED}${lang.getTranslation("command.camera.bind.notfound.name")}")
+                        sender.sendMessage(lang.getTranslation("command.camera.bind.notfound.name"))
                         return@launch
                     }
 
                     if (player == null && cameraPosition != null) {
                         // 找到位置
-                        sender.sendMessage(
-                            "${ChatColor.GOLD}${lang.getTranslation("command.camera.binding.fixedposition")}",
-                            cameraPosition.name
-                        )
+                        sender.sendMessage(lang.getTranslation("command.camera.binding.fixedposition", cameraPosition.name))
+
                         CoroutineScope(Dispatchers.Default).launch {
-                            val result = camera.bindFixedPos(cameraPosition)
+                            val result = camera.bindFixedPos(cameraPosition, false)
                             if (result is BindResult && result != BindResult.SUCCESS) {
-                                sender.sendMessage("${ChatColor.RED}${getBindFailedMessage(result)}")
+                                sender.sendMessage("${getBindFailedMessage(result)}")
                             } else if (result is UnbindResult && result != BindResult.SUCCESS) {
-                                sender.sendMessage("${ChatColor.RED}${getUnbindFailedMessage(result)}")
+                                sender.sendMessage("${getUnbindFailedMessage(result)}")
                             }
                         }
-                        sender.sendMessage("${ChatColor.GOLD}${lang.getTranslation("command.camera.bind.success")}")
+                        sender.sendMessage(lang.getTranslation("command.camera.bind.success"))
                         return@launch
                     }
 
                     // 找到玩家
-                    if (player !is CraftPlayer) sender.sendMessage("${ChatColor.RED}${lang.getTranslation("command.camera.bind.notsupport")}")
+                    if (BukkitUtils.isCraftPlayer(player!!)) sender.sendMessage(lang.getTranslation("command.camera.bind.notsupport"))
 
                     sender.sendMessage(
-                        "${ChatColor.GOLD}${lang.getTranslation("command.camera.binding.player")}",
-                        player!!.name
+                        lang.getTranslation("command.camera.binding.player"),
+                        player.name
                     )
 
-                    val result = camera.bindCamera(player as CraftPlayer)
+                    val result = camera.bindCamera(player, false)
                     if (result != BindResult.SUCCESS) {
-                        sender.sendMessage("${ChatColor.RED}${getBindFailedMessage(result)}")
+                        sender.sendMessage("${getBindFailedMessage(result)}")
                         return@launch
                     }
 
-                    sender.sendMessage("${ChatColor.GOLD}${lang.getTranslation("command.camera.bind.success")}")
+                    sender.sendMessage(lang.getTranslation("command.camera.bind.success"))
                 }
             }
         }
@@ -310,18 +307,18 @@ object PluginCommands : CommandExecutor {
                 val camera = plugin.cameras.find { it.name == cameraName }
 
                 if (camera == null) {
-                    sender.sendMessage("${ChatColor.RED}${lang.getTranslation("command.camera.bind.notfound.camera")}")
+                    sender.sendMessage(lang.getTranslation("command.camera.bind.notfound.camera"))
                     return@launch
                 }
 
                 camera.autoSwitch = false
                 val result = camera.unbindCamera()
                 if (result != UnbindResult.SUCCESS) {
-                    sender.sendMessage("${ChatColor.RED}${getUnbindFailedMessage(result)}")
+                    sender.sendMessage("${getUnbindFailedMessage(result)}")
                     return@launch
                 }
 
-                sender.sendMessage("${ChatColor.GOLD}${lang.getTranslation("command.camera.unbind.success")}")
+                sender.sendMessage(lang.getTranslation("command.camera.unbind.success"))
             }
         }
         return true
@@ -331,24 +328,24 @@ object PluginCommands : CommandExecutor {
         CoroutineScope(Dispatchers.Default).launch {
             plugin.mutexConfig.withLock {
                 if (config.mainConfig.fixedCameraPosition.isEmpty()) {
-                    sender.sendMessage("${ChatColor.RED}${lang.getTranslation("command.position.list.notfound")}")
+                    sender.sendMessage(lang.getTranslation("command.position.list.notfound"))
                     return@launch
                 }
 
                 sender.sendMessage("\n")
-                sender.sendMessage("${ChatColor.GOLD}${ChatColor.BOLD}===============================")
-                sender.sendMessage("${ChatColor.GOLD} ${lang.getTranslation("command.position.list.title")}")
+                sender.sendMessage("${ChatColor.GOLD}===============================")
+                sender.sendMessage(" ${lang.getTranslation("command.position.list.title")}")
                 config.mainConfig.fixedCameraPosition.forEach {
                     sender.sendMessage("\n")
-                    sender.sendMessage("${ChatColor.GOLD} ● ${lang.getTranslation("command.position.list.position.name")}${ChatColor.DARK_AQUA}${it.name}")
-                    sender.sendMessage("${ChatColor.GOLD}   ${lang.getTranslation("command.position.list.position.world")}${ChatColor.DARK_AQUA}${it.world}")
-                    sender.sendMessage("${ChatColor.GOLD}   ${lang.getTranslation("command.position.list.position.x")}${ChatColor.DARK_AQUA}${it.x}")
-                    sender.sendMessage("${ChatColor.GOLD}   ${lang.getTranslation("command.position.list.position.y")}${ChatColor.DARK_AQUA}${it.y}")
-                    sender.sendMessage("${ChatColor.GOLD}   ${lang.getTranslation("command.position.list.position.z")}${ChatColor.DARK_AQUA}${it.z}")
-                    sender.sendMessage("${ChatColor.GOLD}   ${lang.getTranslation("command.position.list.position.yaw")}${ChatColor.DARK_AQUA}${it.yaw}")
-                    sender.sendMessage("${ChatColor.GOLD}   ${lang.getTranslation("command.position.list.position.pitch")}${ChatColor.DARK_AQUA}${it.pitch}")
+                    sender.sendMessage("${ChatColor.GOLD} ● ${lang.getTranslation("command.position.list.position.name")}${it.name}")
+                    sender.sendMessage("   ${lang.getTranslation("command.position.list.position.world")}${it.world}")
+                    sender.sendMessage("   ${lang.getTranslation("command.position.list.position.x")}${it.x}")
+                    sender.sendMessage("   ${lang.getTranslation("command.position.list.position.y")}${it.y}")
+                    sender.sendMessage("   ${lang.getTranslation("command.position.list.position.z")}${it.z}")
+                    sender.sendMessage("   ${lang.getTranslation("command.position.list.position.yaw")}${it.yaw}")
+                    sender.sendMessage("   ${lang.getTranslation("command.position.list.position.pitch")}${it.pitch}")
                 }
-                sender.sendMessage("${ChatColor.GOLD}${ChatColor.BOLD}===============================")
+                sender.sendMessage("${ChatColor.GOLD}===============================")
                 sender.sendMessage("\n")
             }
         }
@@ -361,21 +358,21 @@ object PluginCommands : CommandExecutor {
                 val camera = plugin.cameras.find { it.name == cameraName }
 
                 if (camera == null) {
-                    sender.sendMessage("${ChatColor.RED}${lang.getTranslation("command.camera.autoswitch.notfound")}")
+                    sender.sendMessage(lang.getTranslation("command.camera.autoswitch.notfound"))
                     return@withLock
                 }
 
                 when (status) {
                     "on" -> {
                         camera.autoSwitch = true
-                        sender.sendMessage("${ChatColor.GOLD}${lang.getTranslation("command.camera.autoswitch.success")}")
+                        sender.sendMessage(lang.getTranslation("command.camera.autoswitch.success"))
                     }
                     "off" -> {
                         camera.autoSwitch = false
-                        sender.sendMessage("${ChatColor.GOLD}${lang.getTranslation("command.camera.autoswitch.success")}")
+                        sender.sendMessage(lang.getTranslation("command.camera.autoswitch.success"))
                     }
                     else -> {
-                        sender.sendMessage("${ChatColor.RED}${lang.getTranslation("command.camera.autoswitch.wrong")}")
+                        sender.sendMessage(lang.getTranslation("command.camera.autoswitch.wrong"))
                     }
                 }
             }
@@ -392,6 +389,7 @@ object PluginCommands : CommandExecutor {
             BindResult.NOT_AT_NEAR_BY -> lang.getTranslation("bind.failed.cause.notatnearby")
             BindResult.WORLD_IS_NULL -> lang.getTranslation("bind.failed.cause.worldisnull")
             BindResult.PLAYER_IS_NULL -> lang.getTranslation("bind.failed.cause.playerisnull")
+            BindResult.CAMERA_PLAYER_NOT_ONLINE -> lang.getTranslation("bind.failed.cause.cameraplayernotonline")
             BindResult.SUCCESS -> null
         }
     }
@@ -399,6 +397,7 @@ object PluginCommands : CommandExecutor {
     private fun getUnbindFailedMessage(result: UnbindResult): String? {
         return when (result) {
             UnbindResult.CLIENT_NOT_RESPONDING -> lang.getTranslation("unbind.failed.cause.clientnotrespond")
+            UnbindResult.CAMERA_PLAYER_NOT_ONLINE -> lang.getTranslation("unbind.failed.cause.cameraplayernotonline")
             UnbindResult.NOT_BOUND_CAMERA -> lang.getTranslation("unbind.failed.cause.notboundcamera")
             UnbindResult.SUCCESS -> null
         }

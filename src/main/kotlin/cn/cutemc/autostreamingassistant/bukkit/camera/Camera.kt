@@ -9,14 +9,13 @@ import cn.cutemc.autostreamingassistant.bukkit.events.PlayerLeaveEvent
 import cn.cutemc.autostreamingassistant.bukkit.network.*
 import cn.cutemc.autostreamingassistant.bukkit.network.BindResult.*
 import cn.cutemc.autostreamingassistant.bukkit.network.messagings.events.*
-import cn.cutemc.autostreamingassistant.bukkit.network.messagings.listeners.*
 import cn.cutemc.autostreamingassistant.bukkit.utils.BukkitUtils
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.google.gson.Gson
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.withLock
 import org.bukkit.Location
-import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer
+import org.bukkit.entity.Player
 import java.nio.charset.StandardCharsets
 import java.util.*
 import kotlin.concurrent.schedule
@@ -30,7 +29,7 @@ class Camera(val name: String) {
     private val config by lazy { plugin.config.mainConfig }
     var online = false
         private set
-    var player: CraftPlayer? = null
+    var player: Player? = null
         private set
     var fixedPos: CameraPosition? = null
         private set
@@ -41,11 +40,8 @@ class Camera(val name: String) {
             field = value
         }
 
-    var boundPlayer: CraftPlayer? = null
-        private set (value) {
-            onSetBoundPlayer()
-            field = value
-        }
+    var boundPlayer: Player? = null
+        private set
 
     private var status: ClientStatus? = null
 
@@ -62,25 +58,22 @@ class Camera(val name: String) {
      * 当摄像头加入服务器时调用
      * 这个方法会先发送一个请求客户端状态的消息，然后等待客户端回应
      * 如果客户端回应了，会检查客户端绑定的玩家，如果没有绑定玩家，会随机绑定一个玩家
-     *
-     * @param player 摄像头所属的玩家
      */
     private fun onCameraJoin(event: CameraJoinEvent) {
         CoroutineScope(Dispatchers.Default).launch {
+            if (event.player.name != name) return@launch
+
             val player = event.player
 
-            if (player !is CraftPlayer) throw IllegalStateException("Player is not CraftPlayer!")
-
             val result = withTimeoutOrNull(config.networkTimeout.toLong() * 1000L) {
-                suspendCancellableCoroutine<ClientStatus> { cont ->
+                suspendCancellableCoroutine { cont ->
                     val callback = { event: ClientStatusPacketEvent ->
                         if (event.player.uniqueId == player.uniqueId) {
-                            ClientStatusPacketEvent.EVENT.unregister(this)
                             if (cont.isActive) cont.resume(event.packet.status)
                         }
                     }
 
-                    ClientStatusPacketEvent.EVENT.register(callback)
+                    ClientStatusPacketEvent.EVENT.registerOnce(callback)
 
                     cont.invokeOnCancellation { ClientStatusPacketEvent.EVENT.unregister(callback) }
 
@@ -98,7 +91,7 @@ class Camera(val name: String) {
             online = true
             this@Camera.player = player
 
-            getBoundPlayer() ?: bindRandomPlayer()
+            getBoundPlayer() ?: bindRandom()
         }
     }
 
@@ -107,19 +100,18 @@ class Camera(val name: String) {
      *
      * @return 绑定的玩家，如果没有绑定玩家，返回null
      */
-    suspend fun getBoundPlayer(): CraftPlayer? {
-        if (player == null) throw IllegalStateException("Camera is not online!")
+    suspend fun getBoundPlayer(): Player? {
+        if (player == null) return null
 
         val uuid = withTimeoutOrNull(config.networkTimeout.toLong() * 1000L) {
-            return@withTimeoutOrNull suspendCancellableCoroutine<UUID> { cont ->
+            return@withTimeoutOrNull suspendCancellableCoroutine<UUID?> { cont ->
                 val callback = { event: BindStatusPacketEvent ->
                     if (event.player.uniqueId == player!!.uniqueId) {
-                        BindStatusPacketEvent.EVENT.unregister(this)
                         if (cont.isActive) cont.resume(event.packet.playerUuid)
                     }
                 }
 
-                BindStatusPacketEvent.EVENT.register(callback)
+                BindStatusPacketEvent.EVENT.registerOnce(callback)
 
                 cont.invokeOnCancellation { BindStatusPacketEvent.EVENT.unregister(callback) }
 
@@ -127,15 +119,14 @@ class Camera(val name: String) {
             }
         }
 
-        return if (uuid != null) plugin.server.getPlayer(uuid) as CraftPlayer else null
+        if (uuid != null) {
+            addTimer()
+            return plugin.server.getPlayer(uuid)
+        }
+
+        return null
     }
 
-    /**
-     * 当绑定玩家时调用
-     */
-    private fun onSetBoundPlayer() {
-        addTimer()
-    }
 
     /**
      * 添加切换玩家计时器
@@ -150,7 +141,7 @@ class Camera(val name: String) {
 
                         plugin.logger.info("Interval time is up, try to bind camera $name to a random player")
 
-                        bindRandomPlayer()
+                        bindRandom()
                     }
                 }
             }
@@ -159,7 +150,7 @@ class Camera(val name: String) {
 
     /**
      * 当设置自动切换玩家时调用
-     * 如果设置为开启，但之前是关闭的，并且没有绑定玩家，会随机绑定一个玩家，如果已经绑定了玩家，会添加计时器
+     * 如果设置为开启，但之前是关闭的，并且没有绑定玩家，会随机绑定一个玩家或固定位置，如果已经绑定了玩家，会添加计时器
      * 如果设置为关闭，但之前是开启的，会取消计时器
      *
      * @param value 自动切换玩家的值
@@ -168,11 +159,11 @@ class Camera(val name: String) {
         if (value && !autoSwitch) {
             //
             if (boundPlayer == null) {
-                // 随机绑定一个玩家
+                // 随机绑定一个玩家或位置
                 CoroutineScope(Dispatchers.IO).launch {
                     if (player == null) return@launch
 
-                    bindRandomPlayer()
+                    bindRandom()
                 }
             } else {
                 // 添加计时器
@@ -198,7 +189,7 @@ class Camera(val name: String) {
 
                 if (canBoundPlayers.isEmpty()) return NO_OTHER_PLAYERS
 
-                return bindCamera(canBoundPlayers.random() as CraftPlayer)
+                return bindCamera(canBoundPlayers.random())
             }
         }
     }
@@ -209,10 +200,8 @@ class Camera(val name: String) {
      * @param bindPlayer 要绑定的玩家
      * @return 绑定结果
      */
-    suspend fun bindCamera(bindPlayer: CraftPlayer): BindResult {
-        if (player == null) throw IllegalStateException("Camera is not online!")
-
-        unbindCamera();
+    suspend fun bindCamera(bindPlayer: Player, sendConsoleMsg: Boolean = true): BindResult {
+        if (player == null) return CAMERA_PLAYER_NOT_ONLINE
 
         player!!.teleport(bindPlayer.location)
 
@@ -223,12 +212,11 @@ class Camera(val name: String) {
             return@withTimeoutOrNull suspendCancellableCoroutine { cont ->
                 val callback = { event: BindCameraResponsePacketEvent ->
                     if (event.player.uniqueId == player!!.uniqueId) {
-                        BindCameraResponsePacketEvent.EVENT.unregister(this)
                         if (cont.isActive) cont.resume(event.packet.result)
                     }
                 }
 
-                BindCameraResponsePacketEvent.EVENT.register(callback)
+                BindCameraResponsePacketEvent.EVENT.registerOnce(callback)
 
                 cont.invokeOnCancellation { BindCameraResponsePacketEvent.EVENT.unregister(callback) }
 
@@ -240,42 +228,49 @@ class Camera(val name: String) {
             }
         }
 
-        var boundPlayer: CraftPlayer? = null
+        var boundPlayer: Player? = null
 
-        when(result) {
-            CLIENT_NOT_RESPONDING -> {
-                plugin.logger.warning("Cannot bind camera $name to a random player, please check network connection, or add more timeouts in config.yml")
-                if (autoSwitch) plugin.logger.warning("Will try to rebind the camera at the next interval.")
-            }
-            NO_OTHER_PLAYERS -> {
-            }
-            NOT_FOUND_PLAYER -> {
-                plugin.logger.warning("Can't find player, maybe the player quit when they were ready to bind, if this warning happens multiple times in a row, please feedback this issue!")
-                if (autoSwitch) plugin.logger.warning("Will try to rebind the camera at the next interval.")
-            }
-            NOT_AT_NEAR_BY -> {
-                plugin.logger.warning("The random player is not at near by, it seems that the wait time for the camera to load the entity is too short, please try increasing the wait time")
-                if (autoSwitch) plugin.logger.warning("Will try to rebind the camera at the next interval.")
-            }
-            WORLD_IS_NULL -> {
-                plugin.logger.warning("Camera $name error, please check the client log")
-                player!!.kickPlayer("Camera $name error, please check the client log")
-            }
-            PLAYER_IS_NULL -> {
-                plugin.logger.warning("Camera $name error, please check the client log")
-                player!!.kickPlayer("Camera $name error, please check the client log")
-            }
-            SUCCESS -> {
-                plugin.logger.info("Camera $name bind to ${bindPlayer.name}")
-                boundPlayer = bindPlayer
-            }
-            null -> {
-                plugin.logger.warning("Cannot bind camera $name to a random player, please check network connection, or add more timeouts in config.yml")
-                if (autoSwitch) plugin.logger.warning("Will try to rebind the camera at the next interval.")
+        if (sendConsoleMsg) {
+            when(result) {
+                CLIENT_NOT_RESPONDING -> {
+                    plugin.logger.warning("Cannot bind camera $name to a random player, please check network connection, or add more timeouts in config.yml")
+                    if (autoSwitch) plugin.logger.warning("Will try to rebind the camera at the next interval.")
+                }
+                NO_OTHER_PLAYERS -> {
+                }
+                CAMERA_PLAYER_NOT_ONLINE -> {
+                    plugin.logger.warning("Camera $name is not online!")
+                }
+                NOT_FOUND_PLAYER -> {
+                    plugin.logger.warning("Can't find player, maybe the player quit when they were ready to bind, if this warning happens multiple times in a row, please feedback this issue!")
+                    if (autoSwitch) plugin.logger.warning("Will try to rebind the camera at the next interval.")
+                }
+                NOT_AT_NEAR_BY -> {
+                    plugin.logger.warning("The random player is not at near by, it seems that the wait time for the camera to load the entity is too short, please try increasing the wait time")
+                    if (autoSwitch) plugin.logger.warning("Will try to rebind the camera at the next interval.")
+                }
+                WORLD_IS_NULL -> {
+                    plugin.logger.warning("Camera $name error, please check the client log")
+                    player!!.kickPlayer("Camera $name error, please check the client log")
+                }
+                PLAYER_IS_NULL -> {
+                    plugin.logger.warning("Camera $name error, please check the client log")
+                    player!!.kickPlayer("Camera $name error, please check the client log")
+                }
+                SUCCESS -> {
+                    plugin.logger.info("Camera $name bind to ${bindPlayer.name}")
+                    boundPlayer = bindPlayer
+                }
+                null -> {
+                    plugin.logger.warning("Cannot bind camera $name to a random player, please check network connection, or add more timeouts in config.yml")
+                    if (autoSwitch) plugin.logger.warning("Will try to rebind the camera at the next interval.")
+                }
             }
         }
 
         this.boundPlayer = boundPlayer
+
+        addTimer()
 
         return result ?: CLIENT_NOT_RESPONDING
     }
@@ -286,18 +281,17 @@ class Camera(val name: String) {
      * @return 解绑结果
      */
     suspend fun unbindCamera(): UnbindResult {
-        if (player == null) throw IllegalStateException("Camera is not online!")
+        if (player == null) return UnbindResult.CAMERA_PLAYER_NOT_ONLINE
 
         val result = withTimeoutOrNull(config.networkTimeout.toLong() * 1000L) {
             return@withTimeoutOrNull suspendCancellableCoroutine { cont ->
                 val callback = { event: UnbindCameraResponsePacketEvent ->
                     if (event.player.uniqueId == player!!.uniqueId) {
-                        UnbindCameraResponsePacketEvent.EVENT.unregister(this)
                         if (cont.isActive) cont.resume(event.packet.result)
                     }
                 }
 
-                UnbindCameraResponsePacketEvent.EVENT.register(callback)
+                UnbindCameraResponsePacketEvent.EVENT.registerOnce(callback)
 
                 cont.invokeOnCancellation { UnbindCameraResponsePacketEvent.EVENT.unregister(callback) }
 
@@ -305,7 +299,7 @@ class Camera(val name: String) {
             }
         }
 
-        if (result != UnbindResult.SUCCESS) {
+        if (result != UnbindResult.SUCCESS && result != UnbindResult.NOT_BOUND_CAMERA) {
             plugin.logger.warning("Cannot unbind camera $name, please check the client log")
         }
 
@@ -315,16 +309,16 @@ class Camera(val name: String) {
     /**
      * 当客户端请求绑定摄像头时调用
      *
-     * @param playerUuid 客户端请求绑定的玩家的UUID
+     * @param event 客户端请求绑定摄像头事件
      */
-    fun onClientManualBindCamera(playerUuid: UUID) {
+    fun onClientManualBindCamera(event: ManualBindCameraPacketEvent) {
         CoroutineScope(Dispatchers.IO).launch {
             if (player == null) return@launch
 
-            val bindPlayer = plugin.server.getPlayer(playerUuid)
+            val bindPlayer = plugin.server.getPlayer(event.packet.playerUuid)
 
             if (bindPlayer == null) {
-                plugin.logger.warning("Cannot find player $playerUuid, please check the client log")
+                plugin.logger.warning("Cannot find player $event.packet.playerUuid, please check the client log")
                 plugin.logger.warning("Force bind camera to a new player")
                 bindRandomPlayer()
                 return@launch
@@ -332,7 +326,7 @@ class Camera(val name: String) {
 
             plugin.logger.info("Camera $name manual bind to ${bindPlayer.name}")
 
-            bindCamera(bindPlayer as CraftPlayer)
+            bindCamera(bindPlayer)
         }
     }
 
@@ -342,29 +336,33 @@ class Camera(val name: String) {
      * @param cameraPosition 要显示的位置
      * @return 绑定结果, 类型UnbindResult或者BindResult
      */
-    suspend fun bindFixedPos(cameraPosition: CameraPosition): Any {
-        plugin.logger.info("Camera $name show fixed pos")
+    suspend fun bindFixedPos(cameraPosition: CameraPosition, sendConsoleMsg: Boolean = true): Any {
+        if (sendConsoleMsg) plugin.logger.info("Camera $name show fixed pos")
 
-        if (player == null) throw IllegalStateException("Camera is not online!")
+        if (player == null) return CAMERA_PLAYER_NOT_ONLINE
 
         val result = unbindCamera()
 
-        if (result != UnbindResult.SUCCESS) return result
+        if (result != UnbindResult.SUCCESS && result != UnbindResult.NOT_BOUND_CAMERA) return result
 
         val world = plugin.server.getWorld(cameraPosition.world)
 
         if (world == null) {
-            plugin.logger.warning("Cannot find world ${cameraPosition.world}, please check config.yml")
+            if (sendConsoleMsg) plugin.logger.warning("Cannot find world ${cameraPosition.world}, please check config.yml")
             return WORLD_IS_NULL
         }
 
         val loc = Location(world, cameraPosition.x, cameraPosition.y, cameraPosition.z, cameraPosition.yaw, cameraPosition.pitch)
 
-        player!!.teleport(loc)
+        plugin.server.scheduler.runTask(plugin, Runnable {
+            player!!.teleport(loc)
+        })
 
         fixedPos = cameraPosition
 
         boundPlayer = null
+
+        addTimer()
 
         return SUCCESS
     }
@@ -374,11 +372,7 @@ class Camera(val name: String) {
      */
     suspend fun bindRandomPos() {
         plugin.mutexCameras.withLock {
-            if (player == null) throw IllegalStateException("Camera is not online!")
-
-            val result = unbindCamera()
-
-            if (result != UnbindResult.SUCCESS) return
+            if (player == null) return
 
             val onlineCameras = AutoStreamingAssistant.INSTANCE.cameras.filter { it.isOnline() && it != this }
 
@@ -404,6 +398,10 @@ class Camera(val name: String) {
 
             bindFixedPos(minLoc!!)
         }
+    }
+
+    suspend fun bindRandom() {
+        if (bindRandomPlayer() !== SUCCESS) bindRandomPos()
     }
 
     /**
@@ -450,7 +448,7 @@ class Camera(val name: String) {
 
     private fun onCameraLeave(event: CameraLeaveEvent) {
         synchronized(this) {
-            if (event.player == boundPlayer) {
+            if (event.player == player) {
                 cleanTimer()
 
                 online = false

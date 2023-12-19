@@ -17,7 +17,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.bukkit.Bukkit
-import org.bukkit.ChatColor
 import org.bukkit.plugin.java.JavaPlugin
 
 class AutoStreamingAssistant: JavaPlugin() {
@@ -45,25 +44,25 @@ class AutoStreamingAssistant: JavaPlugin() {
     }
 
     override fun onEnable() {
-        logger.info("${ChatColor.GOLD}${lang.getTranslation("loading.main")}")
+        logger.info(lang.getTranslation("loading.main"))
 
-        logger.info("${ChatColor.GOLD}${lang.getTranslation("loading.reg.command")}")
+        logger.info(lang.getTranslation("loading.reg.command"))
         registerCommands()
 
-        logger.info("${ChatColor.GOLD}${lang.getTranslation("loading.reg.listeners")}")
+        logger.info(lang.getTranslation("loading.reg.listeners"))
         registerListeners()
 
-        logger.info("${ChatColor.GOLD}${lang.getTranslation("loading.create.cameras")}")
+        logger.info(lang.getTranslation("loading.create.cameras"))
         createCameras()
 
-        logger.info("${ChatColor.GOLD}${lang.getTranslation("loading.reg.packet")}")
+        logger.info(lang.getTranslation("loading.reg.packet"))
         registerPacket()
 
-        logger.info("${ChatColor.GOLD}${lang.getTranslation("loading.done")}")
+        logger.info(lang.getTranslation("loading.done"))
     }
 
     override fun onDisable() {
-        logger.info("${ChatColor.GOLD}${lang.getTranslation("disabling.done")}")
+        logger.info(lang.getTranslation("disabling.done"))
     }
 
     override fun reloadConfig() {
@@ -71,24 +70,15 @@ class AutoStreamingAssistant: JavaPlugin() {
         runBlocking {
             mutexConfig.withLock {
                 config.loadConfig()
-                reloadCameras()
             }
         }
     }
 
     private fun createCameras() {
-        CoroutineScope(Dispatchers.Default).launch {
-            mutexCameras.withLock {
-                mutexConfig.withLock {
-                    config.mainConfig.cameraNames.forEach {
-                        cameras.add(Camera(it))
-                    }
-                }
-            }
-        }
+        reloadCameras()
     }
 
-    private fun reloadCameras() {
+    fun reloadCameras() {
         CoroutineScope(Dispatchers.Default).launch {
             mutexCameras.withLock {
                 mutexConfig.withLock {
