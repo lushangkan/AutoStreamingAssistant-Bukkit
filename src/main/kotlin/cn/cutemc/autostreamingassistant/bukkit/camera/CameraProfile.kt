@@ -6,4 +6,8 @@ interface CameraProfile {
 
     fun setGodMod(on: Boolean)
 
+    fun isVanished(): Boolean
+
+    fun setVanish(on: Boolean)
+
 }

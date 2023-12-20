@@ -1,7 +1,6 @@
 package cn.cutemc.autostreamingassistant.bukkit.camera
 
 import cn.cutemc.autostreamingassistant.bukkit.AutoStreamingAssistant
-import cn.cutemc.autostreamingassistant.bukkit.ManagePluginType
 import cn.cutemc.autostreamingassistant.bukkit.ManagePluginType.*
 import cn.cutemc.autostreamingassistant.bukkit.config.CameraPosition
 import cn.cutemc.autostreamingassistant.bukkit.events.CameraJoinEvent
@@ -61,6 +60,7 @@ class Camera(val name: String) {
 
     private var gameModeDaemonID: Int? = null
     private var godModeDaemonID: Int? = null
+    private var vanishDaemonID: Int? = null
 
     init {
         CameraJoinEvent.EVENT.register(this::onCameraJoin)
@@ -111,12 +111,16 @@ class Camera(val name: String) {
             online = true
             this@Camera.player = player
 
-            // 设置为上帝模式
-            cameraProfile?.setGodMod(true)
+            // 设置为上帝模式和隐身
+            plugin.server.scheduler.runTask(plugin, Runnable {
+                cameraProfile?.setGodMod(true)
+                cameraProfile?.setVanish(true)
+            })
 
             // 运行守护
             runGodModeDaemon()
             runGameModeDaemon()
+            runVanishDaemon()
 
             getBoundPlayer() ?: bindRandom()
         }
@@ -497,6 +501,19 @@ class Camera(val name: String) {
     }
 
     /**
+     * 运行隐身守护进程
+     */
+    private fun runVanishDaemon() {
+        vanishDaemonID = plugin.server.scheduler.runTaskTimer(plugin, Runnable {
+            if (player == null || cameraProfile == null) return@Runnable
+
+            if (!cameraProfile!!.isVanished()) {
+                cameraProfile!!.setVanish(true)
+            }
+        }, 0L, 20L).taskId
+    }
+
+    /**
      * 停止上帝模式守护进程
      */
     private fun stopGodModeDaemon() {
@@ -516,6 +533,13 @@ class Camera(val name: String) {
         }
     }
 
+    private fun stopVanishDaemon() {
+        if (vanishDaemonID != null) {
+            plugin.server.scheduler.cancelTask(vanishDaemonID!!)
+            vanishDaemonID = null
+        }
+    }
+
     /**
      * 清除所有计时器
      */
@@ -531,6 +555,7 @@ class Camera(val name: String) {
 
                 stopGameModeDaemon()
                 stopGodModeDaemon()
+                stopVanishDaemon()
 
                 online = false
                 player = null

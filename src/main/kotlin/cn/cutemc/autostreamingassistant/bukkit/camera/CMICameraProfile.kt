@@ -18,5 +18,11 @@ class CMICameraProfile(uuid: UUID): CameraProfile {
         plugin.server.dispatchCommand(plugin.server.consoleSender, "cmi god ${user.name} $on")
     }
 
+    override fun isVanished(): Boolean = user.isVanished
+
+    override fun setVanish(on: Boolean) {
+        user.isVanished = on
+    }
+
 
 }
