@@ -6,6 +6,7 @@ authors: [lushangkan]
 description: A Automated Live Streaming Assistant Bukkit Plugin.
 website: https://cutemc.cn
 #depend: [ProtocolLib]
+softdepend: [Essentials, CMI]
 
 commands:
   autostreamingassistantserver:

@@ -1,5 +1,7 @@
 package cn.cutemc.autostreamingassistant.bukkit.utils
 
+import cn.cutemc.autostreamingassistant.bukkit.AutoStreamingAssistant
+import cn.cutemc.autostreamingassistant.bukkit.ManagePluginType
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
 
@@ -38,5 +40,22 @@ object BukkitUtils {
      */
     fun isCraftPlayer(player: Player): Boolean {
         return player::class.java.simpleName == "CraftPlayer"
+    }
+
+    /**
+     * 获取管理插件类型
+     *
+     * @return 管理插件类型，如果没有找到则返回null
+     */
+    fun getManagePluginType(): ManagePluginType? {
+        val plugin = AutoStreamingAssistant.INSTANCE
+
+        for (type in ManagePluginType.entries) {
+            if (plugin.server.pluginManager.getPlugin(type.pluginName) != null) {
+                return type
+            }
+        }
+
+        return null
     }
 }

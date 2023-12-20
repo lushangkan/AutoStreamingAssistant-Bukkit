@@ -1,6 +1,8 @@
 package cn.cutemc.autostreamingassistant.bukkit.camera
 
 import cn.cutemc.autostreamingassistant.bukkit.AutoStreamingAssistant
+import cn.cutemc.autostreamingassistant.bukkit.ManagePluginType
+import cn.cutemc.autostreamingassistant.bukkit.ManagePluginType.*
 import cn.cutemc.autostreamingassistant.bukkit.config.CameraPosition
 import cn.cutemc.autostreamingassistant.bukkit.events.CameraJoinEvent
 import cn.cutemc.autostreamingassistant.bukkit.events.CameraLeaveEvent
@@ -14,6 +16,7 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.google.gson.Gson
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.withLock
+import org.bukkit.GameMode
 import org.bukkit.Location
 import org.bukkit.entity.Player
 import java.nio.charset.StandardCharsets
@@ -27,11 +30,25 @@ class Camera(val name: String) {
 
     private val plugin by lazy { AutoStreamingAssistant.INSTANCE }
     private val config by lazy { plugin.config.mainConfig }
+
     var online = false
         private set
     var player: Player? = null
         private set
+    val cameraProfile: CameraProfile? by lazy {
+        val type = BukkitUtils.getManagePluginType()
+
+        when(type) {
+            ESSENTIALS -> EssentialsCameraProfile(player!!.uniqueId)
+            CMI -> CMICameraProfile(player!!.uniqueId)
+            else -> null
+        }
+    }
+
     var fixedPos: CameraPosition? = null
+        private set
+
+    var boundPlayer: Player? = null
         private set
 
     var autoSwitch = true
@@ -40,10 +57,10 @@ class Camera(val name: String) {
             field = value
         }
 
-    var boundPlayer: Player? = null
-        private set
-
     private var status: ClientStatus? = null
+
+    private var gameModeDaemonID: Int? = null
+    private var godModeDaemonID: Int? = null
 
     init {
         CameraJoinEvent.EVENT.register(this::onCameraJoin)
@@ -65,6 +82,7 @@ class Camera(val name: String) {
 
             val player = event.player
 
+            // 请求客户端状态
             val result = withTimeoutOrNull(config.networkTimeout.toLong() * 1000L) {
                 suspendCancellableCoroutine { cont ->
                     val callback = { event: ClientStatusPacketEvent ->
@@ -83,13 +101,22 @@ class Camera(val name: String) {
                 }
             }
 
+            // 超时
             if (result == null) {
                 plugin.logger.warning("Cannot get client status from $name, it seems that the client does not load the dependent Mod, please check it!")
                 return@launch
             }
 
+            // 设置在线并绑定玩家
             online = true
             this@Camera.player = player
+
+            // 设置为上帝模式
+            cameraProfile?.setGodMod(true)
+
+            // 运行守护
+            runGodModeDaemon()
+            runGameModeDaemon()
 
             getBoundPlayer() ?: bindRandom()
         }
@@ -203,7 +230,10 @@ class Camera(val name: String) {
     suspend fun bindCamera(bindPlayer: Player, sendConsoleMsg: Boolean = true): BindResult {
         if (player == null) return CAMERA_PLAYER_NOT_ONLINE
 
-        player!!.teleport(bindPlayer.location)
+        plugin.server.scheduler.runTask(plugin, Runnable {
+            player!!.gameMode = bindPlayer.gameMode
+            player!!.teleport(bindPlayer.location)
+        })
 
         delay(5000) // TODO 将延迟添加到配置文件 添加数据包以获取客户端加载玩家列表
 
@@ -230,43 +260,42 @@ class Camera(val name: String) {
 
         var boundPlayer: Player? = null
 
-        if (sendConsoleMsg) {
-            when(result) {
-                CLIENT_NOT_RESPONDING -> {
-                    plugin.logger.warning("Cannot bind camera $name to a random player, please check network connection, or add more timeouts in config.yml")
-                    if (autoSwitch) plugin.logger.warning("Will try to rebind the camera at the next interval.")
-                }
-                NO_OTHER_PLAYERS -> {
-                }
-                CAMERA_PLAYER_NOT_ONLINE -> {
-                    plugin.logger.warning("Camera $name is not online!")
-                }
-                NOT_FOUND_PLAYER -> {
-                    plugin.logger.warning("Can't find player, maybe the player quit when they were ready to bind, if this warning happens multiple times in a row, please feedback this issue!")
-                    if (autoSwitch) plugin.logger.warning("Will try to rebind the camera at the next interval.")
-                }
-                NOT_AT_NEAR_BY -> {
-                    plugin.logger.warning("The random player is not at near by, it seems that the wait time for the camera to load the entity is too short, please try increasing the wait time")
-                    if (autoSwitch) plugin.logger.warning("Will try to rebind the camera at the next interval.")
-                }
-                WORLD_IS_NULL -> {
-                    plugin.logger.warning("Camera $name error, please check the client log")
-                    player!!.kickPlayer("Camera $name error, please check the client log")
-                }
-                PLAYER_IS_NULL -> {
-                    plugin.logger.warning("Camera $name error, please check the client log")
-                    player!!.kickPlayer("Camera $name error, please check the client log")
-                }
-                SUCCESS -> {
-                    plugin.logger.info("Camera $name bind to ${bindPlayer.name}")
-                    boundPlayer = bindPlayer
-                }
-                null -> {
-                    plugin.logger.warning("Cannot bind camera $name to a random player, please check network connection, or add more timeouts in config.yml")
-                    if (autoSwitch) plugin.logger.warning("Will try to rebind the camera at the next interval.")
-                }
+        when(result) {
+            CLIENT_NOT_RESPONDING -> {
+                if (sendConsoleMsg) plugin.logger.warning("Cannot bind camera $name to a random player, please check network connection, or add more timeouts in config.yml")
+                if (autoSwitch) plugin.logger.warning("Will try to rebind the camera at the next interval.")
+            }
+            NO_OTHER_PLAYERS -> {
+            }
+            CAMERA_PLAYER_NOT_ONLINE -> {
+                if (sendConsoleMsg) plugin.logger.warning("Camera $name is not online!")
+            }
+            NOT_FOUND_PLAYER -> {
+                if (sendConsoleMsg) plugin.logger.warning("Can't find player, maybe the player quit when they were ready to bind, if this warning happens multiple times in a row, please feedback this issue!")
+                if (autoSwitch) plugin.logger.warning("Will try to rebind the camera at the next interval.")
+            }
+            NOT_AT_NEAR_BY -> {
+                if (sendConsoleMsg) plugin.logger.warning("The random player is not at near by, it seems that the wait time for the camera to load the entity is too short, please try increasing the wait time")
+                if (autoSwitch) plugin.logger.warning("Will try to rebind the camera at the next interval.")
+            }
+            WORLD_IS_NULL -> {
+                if (sendConsoleMsg) plugin.logger.warning("Camera $name error, please check the client log")
+                player!!.kickPlayer("Camera $name error, please check the client log")
+            }
+            PLAYER_IS_NULL -> {
+                if (sendConsoleMsg) plugin.logger.warning("Camera $name error, please check the client log")
+                player!!.kickPlayer("Camera $name error, please check the client log")
+            }
+            SUCCESS -> {
+                if (sendConsoleMsg) plugin.logger.info("Camera $name bind to ${bindPlayer.name}")
+                boundPlayer = bindPlayer
+            }
+            null -> {
+                if (sendConsoleMsg) plugin.logger.warning("Cannot bind camera $name to a random player, please check network connection, or add more timeouts in config.yml")
+                if (autoSwitch) plugin.logger.warning("Will try to rebind the camera at the next interval.")
             }
         }
+
 
         this.boundPlayer = boundPlayer
 
@@ -355,6 +384,7 @@ class Camera(val name: String) {
         val loc = Location(world, cameraPosition.x, cameraPosition.y, cameraPosition.z, cameraPosition.yaw, cameraPosition.pitch)
 
         plugin.server.scheduler.runTask(plugin, Runnable {
+            player!!.gameMode = GameMode.SPECTATOR
             player!!.teleport(loc)
         })
 
@@ -439,6 +469,54 @@ class Camera(val name: String) {
     }
 
     /**
+     * 运行上帝模式守护进程
+     */
+    private fun runGodModeDaemon() {
+        godModeDaemonID = plugin.server.scheduler.runTaskTimer(plugin, Runnable {
+            if (player == null || cameraProfile == null) return@Runnable
+
+            if (!cameraProfile!!.isGodModOn()) {
+                cameraProfile!!.setGodMod(true)
+            }
+        }, 0L, 20L).taskId
+    }
+
+    /**
+     * 运行游戏模式守护进程
+     */
+    private fun runGameModeDaemon() {
+        gameModeDaemonID = plugin.server.scheduler.runTaskTimer(plugin, Runnable {
+            if (player == null) return@Runnable
+
+            if (fixedPos != null) {
+                player!!.gameMode = GameMode.SPECTATOR
+            } else if (boundPlayer != null) {
+                player!!.gameMode = boundPlayer!!.gameMode
+            }
+        }, 0L, 20L).taskId
+    }
+
+    /**
+     * 停止上帝模式守护进程
+     */
+    private fun stopGodModeDaemon() {
+        if (godModeDaemonID != null) {
+            plugin.server.scheduler.cancelTask(godModeDaemonID!!)
+            godModeDaemonID = null
+        }
+    }
+
+    /**
+     * 停止游戏模式守护进程
+     */
+    private fun stopGameModeDaemon() {
+        if (gameModeDaemonID != null) {
+            plugin.server.scheduler.cancelTask(gameModeDaemonID!!)
+            gameModeDaemonID = null
+        }
+    }
+
+    /**
      * 清除所有计时器
      */
     private fun cleanTimer() {
@@ -450,6 +528,9 @@ class Camera(val name: String) {
         synchronized(this) {
             if (event.player == player) {
                 cleanTimer()
+
+                stopGameModeDaemon()
+                stopGodModeDaemon()
 
                 online = false
                 player = null

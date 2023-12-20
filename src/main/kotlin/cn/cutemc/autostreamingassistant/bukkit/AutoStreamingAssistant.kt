@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import org.bstats.bukkit.Metrics
 import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
 
@@ -45,6 +46,7 @@ class AutoStreamingAssistant: JavaPlugin() {
 
     override fun onEnable() {
         logger.info(lang.getTranslation("loading.main"))
+        registerBStats()
 
         logger.info(lang.getTranslation("loading.reg.command"))
         registerCommands()
@@ -122,7 +124,10 @@ class AutoStreamingAssistant: JavaPlugin() {
         messenger.registerOutgoingPluginChannel(this, PacketID.UNBIND_CAMERA)
         messenger.registerOutgoingPluginChannel(this, PacketID.REQUEST_STATUS)
         messenger.registerOutgoingPluginChannel(this, PacketID.REQUEST_BIND_STATUS)
+    }
 
+    private fun registerBStats() {
+        Metrics(this, 20517)
     }
 
 

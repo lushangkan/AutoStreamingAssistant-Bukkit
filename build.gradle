@@ -19,14 +19,20 @@ repositories {
         name = "codemc-nms"
         url = "https://repo.codemc.io/repository/nms/"
     }
+    maven {
+        url "https://repo.essentialsx.net/releases"
+    }
     maven { url = "https://libraries.minecraft.net" }
     maven { url "https://repo.dmulloy2.net/repository/public/" }
 }
 
 dependencies {
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
+
     compileOnly 'org.spigotmc:spigot:1.20.4-R0.1-20231209.212706-3'
     compileOnly 'org.spigotmc:spigot:1.20.4-R0.1-20231209.212706-3:sources'
+    implementation 'org.bstats:bstats-bukkit:3.0.2'
+
     implementation 'commons-io:commons-io:2.15.0'
 
     implementation 'com.fasterxml.jackson.core:jackson-core:2.16.0'
@@ -36,6 +42,11 @@ dependencies {
     implementation 'com.google.code.gson:gson:2.10.1'
 
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3'
+
+    compileOnly "net.essentialsx:EssentialsX:2.19.0"
+
+    // Download from https://github.com/Zrips/CMI-API/releases/tag/
+    compileOnly files("libs/CMI-API9.6.5.0.jar")
 }
 
 def targetJavaVersion = 17
@@ -53,7 +64,7 @@ test {
 }
 
 shadowJar {
-
+    relocate 'org.bstats', 'cn.cutemc.autostreamingassistant.bukkit'
 }
 
 kotlin {
