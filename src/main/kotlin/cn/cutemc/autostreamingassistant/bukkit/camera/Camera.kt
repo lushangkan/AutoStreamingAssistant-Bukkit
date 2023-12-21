@@ -267,7 +267,7 @@ class Camera(val name: String) {
         when(result) {
             CLIENT_NOT_RESPONDING -> {
                 if (sendConsoleMsg) plugin.logger.warning("Cannot bind camera $name to a random player, please check network connection, or add more timeouts in config.yml")
-                if (autoSwitch) plugin.logger.warning("Will try to rebind the camera at the next interval.")
+                if (autoSwitch && sendConsoleMsg) plugin.logger.warning("Will try to rebind the camera at the next interval.")
             }
             NO_OTHER_PLAYERS -> {
             }
@@ -276,11 +276,11 @@ class Camera(val name: String) {
             }
             NOT_FOUND_PLAYER -> {
                 if (sendConsoleMsg) plugin.logger.warning("Can't find player, maybe the player quit when they were ready to bind, if this warning happens multiple times in a row, please feedback this issue!")
-                if (autoSwitch) plugin.logger.warning("Will try to rebind the camera at the next interval.")
+                if (autoSwitch && sendConsoleMsg) plugin.logger.warning("Will try to rebind the camera at the next interval.")
             }
             NOT_AT_NEAR_BY -> {
                 if (sendConsoleMsg) plugin.logger.warning("The random player is not at near by, it seems that the wait time for the camera to load the entity is too short, please try increasing the wait time")
-                if (autoSwitch) plugin.logger.warning("Will try to rebind the camera at the next interval.")
+                if (autoSwitch && sendConsoleMsg) plugin.logger.warning("Will try to rebind the camera at the next interval.")
             }
             WORLD_IS_NULL -> {
                 if (sendConsoleMsg) plugin.logger.warning("Camera $name error, please check the client log")
@@ -296,7 +296,7 @@ class Camera(val name: String) {
             }
             null -> {
                 if (sendConsoleMsg) plugin.logger.warning("Cannot bind camera $name to a random player, please check network connection, or add more timeouts in config.yml")
-                if (autoSwitch) plugin.logger.warning("Will try to rebind the camera at the next interval.")
+                if (autoSwitch && sendConsoleMsg) plugin.logger.warning("Will try to rebind the camera at the next interval.")
             }
         }
 
