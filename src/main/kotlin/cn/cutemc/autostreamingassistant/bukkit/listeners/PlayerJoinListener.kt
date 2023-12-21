@@ -21,11 +21,14 @@ object PlayerJoinListener : Listener {
         CoroutineScope(Dispatchers.Default).launch {
             plugin.mutexCameras.withLock {
                 val playerName = event.player.name
-                val isCamera = plugin.cameras.map { it.name }.contains(playerName)
-                if (isCamera) {
-                    CameraJoinEvent.EVENT.post(CameraJoinEvent(event.player))
-                    return@withLock
+
+                plugin.cameras.forEach {
+                    if (it.name == playerName) {
+                        CameraJoinEvent.EVENT.post(CameraJoinEvent(it))
+                        return@launch
+                    }
                 }
+
                 cn.cutemc.autostreamingassistant.bukkit.events.PlayerJoinEvent.EVENT.post(
                     cn.cutemc.autostreamingassistant.bukkit.events.PlayerJoinEvent(
                         event.player

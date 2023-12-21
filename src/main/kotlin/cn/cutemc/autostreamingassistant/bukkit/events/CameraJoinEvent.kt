@@ -1,8 +1,8 @@
 package cn.cutemc.autostreamingassistant.bukkit.events
 
-import org.bukkit.entity.Player
+import cn.cutemc.autostreamingassistant.bukkit.camera.Camera
 
-data class CameraJoinEvent(val player: Player): Event {
+data class CameraJoinEvent(val camera: Camera): Event {
     companion object {
         val EVENT = EventBus<CameraJoinEvent>()
     }

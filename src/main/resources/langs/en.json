@@ -76,6 +76,7 @@
   "bind.failed.cause.playerisnull": "§cBinding failed! Player does not exist, please check the client",
   "bind.failed.cause.offline": "§cBinding failed! Camera is offline",
   "bind.failed.cause.cameraplayernotonline": "§cBinding failed! Camera player is not online",
+  "bind.failed.cause.unsupportedgamemode": "§cBinding failed! Unsupported game mode",
   "unbind.failed.cause.clientnotrespond": "§cUnbinding failed! Client did not respond, try adding a timeout in the configuration file",
   "unbind.failed.cause.notboundcamera": "§cUnbinding failed! Camera is not bound",
   "unbind.failed.cause.cameraplayernotonline": "§cUnbinding failed! Camera player is not online"

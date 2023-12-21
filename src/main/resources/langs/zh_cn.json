@@ -76,6 +76,7 @@
   "bind.failed.cause.playerisnull": "§c绑定失败! 玩家不存在, 请检查客户端",
   "bind.failed.cause.offline": "§c绑定失败! 摄像头离线",
   "bind.failed.cause.cameraplayernotonline": "§c绑定失败! 摄像头玩家不在线",
+  "bind.failed.cause.unsupportedgamemode": "§c绑定失败! 不支持的游戏模式",
   "unbind.failed.cause.clientnotrespond": "§c解绑失败! 客户端未响应, 请尝试在配置文件中添加超时时间",
   "unbind.failed.cause.notboundcamera": "§c解绑失败! 摄像头未绑定",
   "unbind.failed.cause.cameraplayernotonline": "§c解绑失败! 摄像头玩家不在线"

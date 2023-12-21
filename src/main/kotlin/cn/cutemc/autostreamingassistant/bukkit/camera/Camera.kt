@@ -1,12 +1,10 @@
 package cn.cutemc.autostreamingassistant.bukkit.camera
 
 import cn.cutemc.autostreamingassistant.bukkit.AutoStreamingAssistant
-import cn.cutemc.autostreamingassistant.bukkit.ManagePluginType.*
+import cn.cutemc.autostreamingassistant.bukkit.ManagePluginType.CMI
+import cn.cutemc.autostreamingassistant.bukkit.ManagePluginType.ESSENTIALS
 import cn.cutemc.autostreamingassistant.bukkit.config.CameraPosition
-import cn.cutemc.autostreamingassistant.bukkit.events.CameraJoinEvent
-import cn.cutemc.autostreamingassistant.bukkit.events.CameraLeaveEvent
-import cn.cutemc.autostreamingassistant.bukkit.events.PlayerJoinEvent
-import cn.cutemc.autostreamingassistant.bukkit.events.PlayerLeaveEvent
+import cn.cutemc.autostreamingassistant.bukkit.events.*
 import cn.cutemc.autostreamingassistant.bukkit.network.*
 import cn.cutemc.autostreamingassistant.bukkit.network.BindResult.*
 import cn.cutemc.autostreamingassistant.bukkit.network.messagings.events.*
@@ -20,12 +18,9 @@ import org.bukkit.Location
 import org.bukkit.entity.Player
 import java.nio.charset.StandardCharsets
 import java.util.*
-import kotlin.concurrent.schedule
 import kotlin.coroutines.resume
 
 class Camera(val name: String) {
-
-    private var timer = Timer()
 
     private val plugin by lazy { AutoStreamingAssistant.INSTANCE }
     private val logger by lazy { plugin.logger }
@@ -61,15 +56,16 @@ class Camera(val name: String) {
 
     private var status: ClientStatus? = null
 
-    private var gameModeDaemonID: Int? = null
     private var godModeDaemonID: Int? = null
     private var vanishDaemonID: Int? = null
 
     init {
         CameraJoinEvent.EVENT.register(this::onCameraJoin)
         CameraLeaveEvent.EVENT.register(this::onCameraLeave)
+        CameraGameModeChangeEvent.EVENT.register(this::onCameraGameModeChange)
         PlayerJoinEvent.EVENT.register(this::onPlayerJoin)
         PlayerLeaveEvent.EVENT.register(this::onPlayerLeave)
+        PlayerGameModeChangeEvent.EVENT.register(this::onPlayerGameModeChange)
 
         ManualBindCameraPacketEvent.EVENT.register(this::onClientManualBindCamera)
     }
@@ -81,9 +77,9 @@ class Camera(val name: String) {
      */
     private fun onCameraJoin(event: CameraJoinEvent) {
         CoroutineScope(Dispatchers.Default).launch {
-            if (event.player.name != name) return@launch
+            if (event.camera != this@Camera) return@launch
 
-            val player = event.player
+            val player = plugin.server.getPlayer(name) ?: return@launch
 
             // 请求客户端状态
             val result = withTimeoutOrNull(config.networkTimeout.toLong() * 1000L) {
@@ -122,7 +118,6 @@ class Camera(val name: String) {
 
             // 运行守护
             runGodModeDaemon()
-            runGameModeDaemon()
             runVanishDaemon()
 
             // 延迟1秒以处理未知的Bug，即绑定数据包发送后，客户端收不到数据包
@@ -144,7 +139,7 @@ class Camera(val name: String) {
             return@withTimeoutOrNull suspendCancellableCoroutine<UUID?> { cont ->
                 val callback = { event: BindStatusPacketEvent ->
                     if (event.player.uniqueId == player!!.uniqueId) {
-                        if (cont.isActive) cont.resume(event.packet.playerUuid)
+                        if (cont.isActive && online) cont.resume(event.packet.playerUuid)
                     }
                 }
 
@@ -224,11 +219,11 @@ class Camera(val name: String) {
             plugin.mutexConfig.withLock {
                 val cameraPlayers = config.cameraNames.mapNotNull { plugin.server.getPlayer(it) }
                 val boundPlayers = plugin.cameras.mapNotNull { it.boundPlayer }
-                val canBoundPlayers = plugin.server.onlinePlayers.filter { it !in boundPlayers && it !in cameraPlayers }
+                val canBoundPlayers = plugin.server.onlinePlayers.filter { it !in boundPlayers && it !in cameraPlayers && it.gameMode != GameMode.SPECTATOR }
 
                 if (canBoundPlayers.isEmpty()) return NO_OTHER_PLAYERS
 
-                return bindCamera(canBoundPlayers.random())
+                return bindPlayer(canBoundPlayers.random())
             }
         }
     }
@@ -239,22 +234,35 @@ class Camera(val name: String) {
      * @param bindPlayer 要绑定的玩家
      * @return 绑定结果
      */
-    suspend fun bindCamera(bindPlayer: Player, sendConsoleMsg: Boolean = true): BindResult {
+    suspend fun bindPlayer(bindPlayer: Player, sendConsoleMsg: Boolean = true): BindResult {
         if (player == null) return CAMERA_PLAYER_NOT_ONLINE
 
+        if (bindPlayer.gameMode == GameMode.SPECTATOR) return UNSUPPORTED_GAME_MODE
+
+        // 设置pos为null
+        fixedPos = null
+
+        var taskDone = false
+
+        // 传送到玩家并设置为对应的游戏模式
         plugin.server.scheduler.runTask(plugin, Runnable {
             player!!.gameMode = bindPlayer.gameMode
             player!!.teleport(bindPlayer.location)
+            taskDone = true
         })
 
-        delay(5000) // TODO 将延迟添加到配置文件 添加数据包以获取客户端加载玩家列表
+        // 等待任务完成
+        while (!taskDone) {
+            delay(1)
+        }
 
+        // 请求客户端绑定到玩家
         val result = withTimeoutOrNull(config.networkTimeout.toLong() * 1000L) {
 
             return@withTimeoutOrNull suspendCancellableCoroutine { cont ->
                 val callback = { event: BindCameraResponsePacketEvent ->
                     if (event.player.uniqueId == player!!.uniqueId) {
-                        if (cont.isActive) cont.resume(event.packet.result)
+                        if (cont.isActive && online) cont.resume(event.packet.result)
                     }
                 }
 
@@ -332,7 +340,7 @@ class Camera(val name: String) {
             return@withTimeoutOrNull suspendCancellableCoroutine { cont ->
                 val callback = { event: UnbindCameraResponsePacketEvent ->
                     if (event.player.uniqueId == player!!.uniqueId) {
-                        if (cont.isActive) cont.resume(event.packet.result)
+                        if (cont.isActive && online) cont.resume(event.packet.result)
                     }
                 }
 
@@ -484,30 +492,56 @@ class Camera(val name: String) {
         }
     }
 
+    private fun onCameraGameModeChange(event: CameraGameModeChangeEvent) {
+        if (player == null) return
+
+        if (fixedPos != null) {
+            player!!.gameMode = GameMode.SPECTATOR
+        } else if (boundPlayer != null && boundPlayer!!.gameMode == GameMode.SPECTATOR) {
+            CoroutineScope(Dispatchers.Default).launch {
+                bindRandom()
+            }
+        } else if (boundPlayer != null) {
+            player!!.gameMode = boundPlayer!!.gameMode
+        }
+    }
+
+    private fun onPlayerGameModeChange(event: PlayerGameModeChangeEvent) {
+        CoroutineScope(Dispatchers.Default).launch {
+            if (player == null) return@launch
+
+            if (event.player == boundPlayer) {
+                // 如果玩家是摄像头绑定的玩家
+                if (event.newGameMode == GameMode.SPECTATOR) {
+                    bindRandom()
+                    return@launch
+                }
+
+                plugin.server.scheduler.runTask(plugin, Runnable {
+                    player!!.gameMode = event.newGameMode
+                })
+            } else if (boundPlayer == null && fixedPos != null && autoSwitch && event.newGameMode != GameMode.SPECTATOR) {
+                // 如果没有绑定玩家而是显示固定位置，并且自动切换玩家开启，并且玩家不是旁观模式，那么就绑定到新的玩家
+                bindRandom()
+            }
+        }
+    }
+
     /**
      * 运行上帝模式守护进程
      */
     private fun runGodModeDaemon() {
         godModeDaemonID = plugin.server.scheduler.runTaskTimer(plugin, Runnable {
-            if (player == null || cameraProfile == null) return@Runnable
+            if (player == null || cameraProfile == null || !online) return@Runnable
 
-            if (!cameraProfile!!.isGodModOn()) {
-                cameraProfile!!.setGodMod(true)
-            }
-        }, 0L, 20L).taskId
-    }
-
-    /**
-     * 运行游戏模式守护进程
-     */
-    private fun runGameModeDaemon() {
-        gameModeDaemonID = plugin.server.scheduler.runTaskTimer(plugin, Runnable {
-            if (player == null) return@Runnable
-
-            if (fixedPos != null) {
-                player!!.gameMode = GameMode.SPECTATOR
-            } else if (boundPlayer != null) {
-                player!!.gameMode = boundPlayer!!.gameMode
+            try {
+                if (!cameraProfile!!.isGodModOn()) {
+                    cameraProfile!!.setGodMod(true)
+                }
+            } catch (e: Exception) {
+                if (online) {
+                    e.printStackTrace()
+                }
             }
         }, 0L, 20L).taskId
     }
@@ -517,10 +551,16 @@ class Camera(val name: String) {
      */
     private fun runVanishDaemon() {
         vanishDaemonID = plugin.server.scheduler.runTaskTimer(plugin, Runnable {
-            if (player == null || cameraProfile == null) return@Runnable
+            if (player == null || cameraProfile == null || !online) return@Runnable
 
-            if (!cameraProfile!!.isVanished()) {
-                cameraProfile!!.setVanish(true)
+            try {
+                if (!cameraProfile!!.isVanished()) {
+                    cameraProfile!!.setVanish(true)
+                }
+            } catch (e: Exception) {
+                if (online) {
+                    e.printStackTrace()
+                }
             }
         }, 0L, 20L).taskId
     }
@@ -532,16 +572,6 @@ class Camera(val name: String) {
         if (godModeDaemonID != null) {
             plugin.server.scheduler.cancelTask(godModeDaemonID!!)
             godModeDaemonID = null
-        }
-    }
-
-    /**
-     * 停止游戏模式守护进程
-     */
-    private fun stopGameModeDaemon() {
-        if (gameModeDaemonID != null) {
-            plugin.server.scheduler.cancelTask(gameModeDaemonID!!)
-            gameModeDaemonID = null
         }
     }
 
@@ -562,10 +592,9 @@ class Camera(val name: String) {
 
     private fun onCameraLeave(event: CameraLeaveEvent) {
         synchronized(this) {
-            if (event.player == player) {
+            if (event.camera == this) {
                 cleanTimer()
 
-                stopGameModeDaemon()
                 stopGodModeDaemon()
                 stopVanishDaemon()
 

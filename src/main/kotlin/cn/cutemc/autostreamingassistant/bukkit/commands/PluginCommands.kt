@@ -287,7 +287,7 @@ object PluginCommands : CommandExecutor {
                         player.name
                     )
 
-                    val result = camera.bindCamera(player, false)
+                    val result = camera.bindPlayer(player, false)
                     if (result != BindResult.SUCCESS) {
                         sender.sendMessage("${getBindFailedMessage(result)}")
                         return@launch
@@ -390,6 +390,7 @@ object PluginCommands : CommandExecutor {
             BindResult.WORLD_IS_NULL -> lang.getTranslation("bind.failed.cause.worldisnull")
             BindResult.PLAYER_IS_NULL -> lang.getTranslation("bind.failed.cause.playerisnull")
             BindResult.CAMERA_PLAYER_NOT_ONLINE -> lang.getTranslation("bind.failed.cause.cameraplayernotonline")
+            BindResult.UNSUPPORTED_GAME_MODE -> lang.getTranslation("bind.failed.cause.unsupportedgamemode")
             BindResult.SUCCESS -> null
         }
     }

@@ -21,11 +21,12 @@ object PlayerQuitListener : Listener {
         CoroutineScope(Dispatchers.Default).launch {
             plugin.mutexCameras.withLock {
                 val playerName = event.player.name
-                val isCamera = plugin.cameras.map { it.name }.contains(playerName)
 
-                if (isCamera) {
-                    CameraLeaveEvent.EVENT.post(CameraLeaveEvent(event.player))
-                    return@launch
+                plugin.cameras.forEach {
+                    if (it.name == playerName) {
+                        CameraLeaveEvent.EVENT.post(CameraLeaveEvent(it))
+                        return@launch
+                    }
                 }
 
                 PlayerLeaveEvent.EVENT.post(PlayerLeaveEvent(event.player))

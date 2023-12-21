@@ -23,6 +23,7 @@ enum class BindResult {
     NOT_AT_NEAR_BY,
     WORLD_IS_NULL,
     PLAYER_IS_NULL,
+    UNSUPPORTED_GAME_MODE,
     SUCCESS;
 
     override fun toString(): String {
