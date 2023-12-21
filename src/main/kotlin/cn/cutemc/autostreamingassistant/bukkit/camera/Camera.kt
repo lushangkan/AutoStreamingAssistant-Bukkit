@@ -125,7 +125,10 @@ class Camera(val name: String) {
             runGameModeDaemon()
             runVanishDaemon()
 
-            getBoundPlayer() ?: bindRandom()
+            // 延迟1秒以处理未知的Bug，即绑定数据包发送后，客户端收不到数据包
+            delay(1000)
+
+            bindRandom()
         }
     }
 
