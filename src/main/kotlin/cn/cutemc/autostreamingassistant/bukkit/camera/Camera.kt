@@ -31,6 +31,8 @@ class Camera(val name: String) {
     private val logger by lazy { plugin.logger }
     private val config by lazy { plugin.config.mainConfig }
 
+    private var timer = Timer()
+
     var online = false
         private set
     var player: Player? = null
@@ -166,17 +168,19 @@ class Camera(val name: String) {
     private fun addTimer() {
         cleanTimer()
         if (autoSwitch) {
-            timer.schedule(config.switchPlayerInterval.toLong() * 60L * 1000L) {
-                synchronized(this@Camera) {
-                    CoroutineScope(Dispatchers.IO).launch {
-                        if (player == null) return@launch
+            timer.schedule(object : TimerTask() {
+                override fun run() {
+                    synchronized(this@Camera) {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            if (player == null) return@launch
 
                             logger.info("Interval time is up, try to bind camera $name to a random player")
 
-                        bindRandom()
+                            bindRandom()
+                        }
                     }
                 }
-            }
+            }, config.switchPlayerInterval.toLong() * 60L * 1000L)
         }
     }
 
