@@ -28,6 +28,7 @@ class Camera(val name: String) {
     private var timer = Timer()
 
     private val plugin by lazy { AutoStreamingAssistant.INSTANCE }
+    private val logger by lazy { plugin.logger }
     private val config by lazy { plugin.config.mainConfig }
 
     var online = false
@@ -103,7 +104,7 @@ class Camera(val name: String) {
 
             // 超时
             if (result == null) {
-                plugin.logger.warning("Cannot get client status from $name, it seems that the client does not load the dependent Mod, please check it!")
+                logger.warning("Cannot get client status from $name, it seems that the client does not load the dependent Mod, please check it!")
                 return@launch
             }
 
@@ -170,7 +171,7 @@ class Camera(val name: String) {
                     CoroutineScope(Dispatchers.IO).launch {
                         if (player == null) return@launch
 
-                        plugin.logger.info("Interval time is up, try to bind camera $name to a random player")
+                            logger.info("Interval time is up, try to bind camera $name to a random player")
 
                         bindRandom()
                     }
@@ -266,37 +267,41 @@ class Camera(val name: String) {
 
         when(result) {
             CLIENT_NOT_RESPONDING -> {
-                if (sendConsoleMsg) plugin.logger.warning("Cannot bind camera $name to a random player, please check network connection, or add more timeouts in config.yml")
-                if (autoSwitch && sendConsoleMsg) plugin.logger.warning("Will try to rebind the camera at the next interval.")
+                if (sendConsoleMsg) logger.warning("Cannot bind camera $name to a random player, please check network connection, or add more timeouts in config.yml")
+                if (autoSwitch && sendConsoleMsg) logger.warning("Will try to rebind the camera at the next interval.")
             }
             NO_OTHER_PLAYERS -> {
             }
             CAMERA_PLAYER_NOT_ONLINE -> {
-                if (sendConsoleMsg) plugin.logger.warning("Camera $name is not online!")
+                if (sendConsoleMsg) logger.warning("Camera $name is not online!")
             }
             NOT_FOUND_PLAYER -> {
-                if (sendConsoleMsg) plugin.logger.warning("Can't find player, maybe the player quit when they were ready to bind, if this warning happens multiple times in a row, please feedback this issue!")
-                if (autoSwitch && sendConsoleMsg) plugin.logger.warning("Will try to rebind the camera at the next interval.")
+                if (sendConsoleMsg) logger.warning("Can't find player, maybe the player quit when they were ready to bind, if this warning happens multiple times in a row, please feedback this issue!")
+                if (autoSwitch && sendConsoleMsg) logger.warning("Will try to rebind the camera at the next interval.")
             }
             NOT_AT_NEAR_BY -> {
-                if (sendConsoleMsg) plugin.logger.warning("The random player is not at near by, it seems that the wait time for the camera to load the entity is too short, please try increasing the wait time")
-                if (autoSwitch && sendConsoleMsg) plugin.logger.warning("Will try to rebind the camera at the next interval.")
+                if (sendConsoleMsg) logger.warning("The random player is not at near by, it seems that the wait time for the camera to load the entity is too short, please try increasing the wait time")
+                if (autoSwitch && sendConsoleMsg) logger.warning("Will try to rebind the camera at the next interval.")
             }
             WORLD_IS_NULL -> {
-                if (sendConsoleMsg) plugin.logger.warning("Camera $name error, please check the client log")
+                if (sendConsoleMsg) logger.warning("Camera $name error, please check the client log")
                 player!!.kickPlayer("Camera $name error, please check the client log")
             }
             PLAYER_IS_NULL -> {
-                if (sendConsoleMsg) plugin.logger.warning("Camera $name error, please check the client log")
+                if (sendConsoleMsg) logger.warning("Camera $name error, please check the client log")
                 player!!.kickPlayer("Camera $name error, please check the client log")
             }
+            UNSUPPORTED_GAME_MODE -> {
+                if (sendConsoleMsg) logger.warning("Unsupported game mode ${bindPlayer.gameMode}, please check config.yml")
+                if (autoSwitch && sendConsoleMsg) logger.warning("Will try to rebind the camera at the next interval.")
+            }
             SUCCESS -> {
-                if (sendConsoleMsg) plugin.logger.info("Camera $name bind to ${bindPlayer.name}")
+                if (sendConsoleMsg) logger.info("Camera $name bind to ${bindPlayer.name}")
                 boundPlayer = bindPlayer
             }
             null -> {
-                if (sendConsoleMsg) plugin.logger.warning("Cannot bind camera $name to a random player, please check network connection, or add more timeouts in config.yml")
-                if (autoSwitch && sendConsoleMsg) plugin.logger.warning("Will try to rebind the camera at the next interval.")
+                if (sendConsoleMsg) logger.warning("Cannot bind camera $name to a random player, please check network connection, or add more timeouts in config.yml")
+                if (autoSwitch && sendConsoleMsg) logger.warning("Will try to rebind the camera at the next interval.")
             }
         }
 
@@ -333,7 +338,7 @@ class Camera(val name: String) {
         }
 
         if (result != UnbindResult.SUCCESS && result != UnbindResult.NOT_BOUND_CAMERA) {
-            plugin.logger.warning("Cannot unbind camera $name, please check the client log")
+            logger.warning("Cannot unbind camera $name, please check the client log")
         }
 
         return result ?: UnbindResult.CLIENT_NOT_RESPONDING
@@ -351,15 +356,15 @@ class Camera(val name: String) {
             val bindPlayer = plugin.server.getPlayer(event.packet.playerUuid)
 
             if (bindPlayer == null) {
-                plugin.logger.warning("Cannot find player $event.packet.playerUuid, please check the client log")
-                plugin.logger.warning("Force bind camera to a new player")
+                logger.warning("Cannot find player $event.packet.playerUuid, please check the client log")
+                logger.warning("Force bind camera to a new player")
                 bindRandomPlayer()
                 return@launch
             }
 
-            plugin.logger.info("Camera $name manual bind to ${bindPlayer.name}")
+            logger.info("Camera $name manual bind to ${bindPlayer.name}")
 
-            bindCamera(bindPlayer)
+            bindPlayer(bindPlayer)
         }
     }
 
@@ -370,7 +375,7 @@ class Camera(val name: String) {
      * @return 绑定结果, 类型UnbindResult或者BindResult
      */
     suspend fun bindFixedPos(cameraPosition: CameraPosition, sendConsoleMsg: Boolean = true): Any {
-        if (sendConsoleMsg) plugin.logger.info("Camera $name show fixed pos")
+        if (sendConsoleMsg) logger.info("Camera $name show fixed pos")
 
         if (player == null) return CAMERA_PLAYER_NOT_ONLINE
 
@@ -381,7 +386,7 @@ class Camera(val name: String) {
         val world = plugin.server.getWorld(cameraPosition.world)
 
         if (world == null) {
-            if (sendConsoleMsg) plugin.logger.warning("Cannot find world ${cameraPosition.world}, please check config.yml")
+            if (sendConsoleMsg) logger.warning("Cannot find world ${cameraPosition.world}, please check config.yml")
             return WORLD_IS_NULL
         }
 
@@ -413,7 +418,7 @@ class Camera(val name: String) {
             val allLocs = config.fixedCameraPosition.clone()
 
             if (allLocs.isEmpty()) {
-                plugin.logger.warning("Cannot find a random position, please check config.yml")
+                logger.warning("Cannot find a random position, please check config.yml")
                 return
             }
 
