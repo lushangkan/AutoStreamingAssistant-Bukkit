@@ -7,6 +7,7 @@ import cn.cutemc.autostreamingassistant.bukkit.config.PluginConfig
 import cn.cutemc.autostreamingassistant.bukkit.lang.PluginLang
 import cn.cutemc.autostreamingassistant.bukkit.listeners.PlayerGameModeChangeListener
 import cn.cutemc.autostreamingassistant.bukkit.listeners.PlayerJoinListener
+import cn.cutemc.autostreamingassistant.bukkit.listeners.PlayerMoveListener
 import cn.cutemc.autostreamingassistant.bukkit.listeners.PlayerQuitListener
 import cn.cutemc.autostreamingassistant.bukkit.logger.PluginLogger
 import cn.cutemc.autostreamingassistant.bukkit.network.PacketID
@@ -111,6 +112,7 @@ class AutoStreamingAssistant: JavaPlugin() {
         Bukkit.getPluginManager().registerEvents(PlayerJoinListener, this)
         Bukkit.getPluginManager().registerEvents(PlayerQuitListener, this)
         Bukkit.getPluginManager().registerEvents(PlayerGameModeChangeListener, this)
+        Bukkit.getPluginManager().registerEvents(PlayerMoveListener, this)
     }
 
     private fun registerPacket() {

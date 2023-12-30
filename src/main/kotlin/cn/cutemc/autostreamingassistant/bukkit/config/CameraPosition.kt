@@ -1,5 +1,7 @@
 package cn.cutemc.autostreamingassistant.bukkit.config
 
+import org.bukkit.Bukkit
+
 data class CameraPosition(
     val name: String,
     val world: String,
@@ -9,6 +11,16 @@ data class CameraPosition(
     val yaw: Float,
     val pitch: Float
 ) {
+
+    fun toLocation() = org.bukkit.Location(
+        Bukkit.getWorld(world),
+        x,
+        y,
+        z,
+        yaw,
+        pitch
+    )
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is CameraPosition) return false

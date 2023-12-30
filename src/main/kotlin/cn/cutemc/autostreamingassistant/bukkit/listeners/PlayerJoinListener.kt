@@ -9,6 +9,7 @@ import kotlinx.coroutines.sync.withLock
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerJoinEvent
+import org.bukkit.scoreboard.Team
 
 
 object PlayerJoinListener : Listener {
@@ -37,6 +38,16 @@ object PlayerJoinListener : Listener {
             }
         }
 
+        val player = event.player
+
+        player.scoreboard = plugin.server.scoreboardManager!!.newScoreboard.apply {
+            registerNewTeam("camera").apply {
+                plugin.server.onlinePlayers.forEach {
+                    addEntry(it.name)
+                }
+                setOption(Team.Option.COLLISION_RULE, Team.OptionStatus.FOR_OWN_TEAM)
+            }
+        }
     }
 }
 
